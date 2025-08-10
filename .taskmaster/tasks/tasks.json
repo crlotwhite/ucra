@@ -9,7 +9,7 @@
         "testStrategy": "Compile `ucra.h` with a dummy C file to ensure syntax correctness. Write basic unit tests for struct sizes and ensure function signatures are correctly exposed (even if they are stubs initially).",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -17,7 +17,7 @@
             "description": "Create the `ucra.h` file with standard include guards, `extern \"C\"` blocks for C++ compatibility, and API visibility macros (e.g., `UCRA_API`). Define fundamental C99-compatible types such as `UCRA_Handle` and fixed-width integers from `<stdint.h>`.",
             "dependencies": [],
             "details": "This initial setup ensures a clean, cross-platform, and C99-compatible foundation for all subsequent API definitions. It establishes the basic scaffolding required before defining complex data structures or functions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify the header compiles successfully on its own with a C99-compliant compiler. Check that the `extern \"C\"` block is correctly placed."
           },
           {
@@ -28,7 +28,7 @@
               "1.1"
             ],
             "details": "Focus on a clear and stable ABI by using fixed-size types and pointers for variable-length data. Add comments to clarify memory ownership rules for any pointers within the structs (e.g., who is responsible for allocating/freeing curve data).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write a small C program that includes the header and uses `sizeof()` on each structure to log its size, ensuring the memory layout is as expected and stable across compiles."
           },
           {
@@ -39,7 +39,7 @@
               "1.2"
             ],
             "details": "`UCRA_RenderConfig` will aggregate all settings required for a render call. `UCRA_RenderResult` will contain a pointer to the output PCM buffer and its size. Memory management for the output buffer must be clearly documented.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Extend the `sizeof()` test program to include these new structures. Review struct members to ensure they cover all necessary configuration and result parameters."
           },
           {
@@ -50,7 +50,7 @@
               "1.1"
             ],
             "details": "The enumeration should be comprehensive, including codes for success (`UCRA_SUCCESS`), invalid arguments, memory allocation failures, and other engine-specific errors. This is critical for robust error handling in client applications.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Check that the enum values are distinct and that the naming convention is consistent. Ensure a `UCRA_SUCCESS` or `UCRA_OK` value is defined as 0."
           },
           {
@@ -62,7 +62,7 @@
               "1.4"
             ],
             "details": "Each function signature must be prefixed with the `UCRA_API` macro for proper symbol visibility. Add Doxygen-style comments to each function explaining its purpose, parameters, and return value. This completes the public interface defined in the parent task.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Create a dummy C file that includes the final `ucra.h` and declares stub implementations for each function. Compile this dummy file to ensure all types, structures, and function signatures are syntactically correct and linkable."
           }
         ]
@@ -688,7 +688,7 @@
     ],
     "metadata": {
       "created": "2025-08-10T12:56:02.632Z",
-      "updated": "2025-08-10T12:58:04.269Z",
+      "updated": "2025-08-10T13:14:23.501Z",
       "description": "Tasks for master context"
     }
   }

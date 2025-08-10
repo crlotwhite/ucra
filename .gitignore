@@ -22,3 +22,7 @@ node_modules/
 
 # OS specific
 .DS_Store
+
+# Build directories
+build/
+build-*/
