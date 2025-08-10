@@ -1,0 +1,93 @@
+{
+	"meta": {
+		"generatedAt": "2025-08-10T12:59:32.202Z",
+		"tasksAnalyzed": 10,
+		"totalTasks": 10,
+		"analysisCount": 10,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Define Core UCRA C API & Data Structures",
+			"complexityScore": 2,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand the task 'Define Core UCRA C API & Data Structures' into 3 subtasks. The subtasks should cover: 1. Defining all required data structures (`UCRA_KeyValue`, `UCRA_F0Curve`, etc.) ensuring C99 compatibility and proper memory alignment. 2. Defining all core function signatures (`ucra_engine_create`, etc.) and error codes, establishing the public API surface. 3. Creating a minimal C source file and build script to compile-test the header for syntax and ABI correctness.",
+			"reasoning": "The task is well-defined and involves creating a C header file with stubs. The complexity is low as it doesn't require implementing any logic, but it's critical for the project's foundation, requiring careful design of the ABI."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Implement UCRA Manifest Schema & Parser",
+			"complexityScore": 4,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Expand the task 'Implement UCRA Manifest Schema & Parser' into 4 subtasks. The subtasks should cover: 1. Researching and integrating a suitable C/C++ JSON parsing library (e.g., RapidJSON). 2. Formally defining the `resampler.json` schema, possibly as a JSON Schema file. 3. Implementing the parser logic to map JSON fields to internal C structures, including robust error handling and validation against the schema. 4. Developing a test suite with valid and invalid manifest files to verify correct parsing and error reporting.",
+			"reasoning": "The task involves integrating an external JSON library, which adds a dependency management layer. Implementing robust parsing with schema validation and comprehensive error handling for malformed inputs is moderately complex."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Develop Legacy CLI Bridge (`resampler.exe`)",
+			"complexityScore": 7,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand the task 'Develop Legacy CLI Bridge (`resampler.exe`)' into 5 subtasks. The subtasks should cover: 1. Implementing a robust command-line argument parser for all specified legacy UTAU flags. 2. Developing the logic to convert parsed CLI arguments (strings, file paths) into the corresponding `UCRA_NoteSegment` and `UCRA_RenderConfig` data structures. 3. Implementing the dynamic engine loading mechanism, which finds the appropriate engine based on the manifest and loads it. 4. Creating the main application loop that orchestrates calling `ucra_render` and handling input/output files. 5. Writing integration tests that simulate UTAU calling the bridge with various argument combinations.",
+			"reasoning": "High complexity due to the need to accurately replicate a legacy CLI with many flags and potential edge cases. It involves complex logic for argument parsing, data conversion from various legacy formats to UCRA structs, and dynamic loading of engine libraries based on manifest discovery."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Implement UCRA Streaming API",
+			"complexityScore": 8,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand the task 'Implement UCRA Streaming API' into 5 subtasks. The subtasks should cover: 1. Designing the internal state management structure for an active stream, including buffer management and tracking render progress. 2. Implementing the `ucra_stream_open` and `ucra_stream_close` functions to manage the lifecycle of a stream. 3. Implementing the core `ucra_stream_read` function, which handles the `UCRA_PullPCM` callback logic and delivers audio blocks. 4. Implementing and testing thread-safety mechanisms to protect shared state during concurrent access. 5. Developing a test client to measure latency and verify stream continuity under various block sizes and loads.",
+			"reasoning": "This task is highly complex due to the real-time, low-latency requirements. It involves careful design of internal state machines, buffering strategies, and ensuring thread safety for the pull-based callback model, which is critical for preventing deadlocks or race conditions in host applications."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Integrate Reference Engine (WORLD/LLSM2 Wrapper)",
+			"complexityScore": 8,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand the task 'Integrate Reference Engine (WORLD/LLSM2 Wrapper)' into 5 subtasks. The subtasks should cover: 1. Setting up the build system to compile and link against the chosen engine (e.g., WORLD). 2. Implementing the `ucra_engine_create`, `ucra_engine_destroy`, and `ucra_engine_getinfo` functions to manage engine instances and report capabilities. 3. Implementing the offline `ucra_render` function, including the logic to convert UCRA inputs into the format required by the wrapped engine. 4. Implementing the streaming API (`ucra_stream_*` functions) for the wrapped engine. 5. Creating a comprehensive test suite that renders audio using the wrapper and compares it against output from the native WORLD tool for fidelity.",
+			"reasoning": "High complexity due to the 'impedance mismatch' between the generic UCRA API and the specific API of an existing engine like WORLD. This requires deep understanding of both systems to correctly map data structures, manage state, and implement both offline and streaming rendering paths."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Develop Multi-language SDK Wrappers",
+			"complexityScore": 9,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand the task 'Develop Multi-language SDK Wrappers' into 5 subtasks. The subtasks should be: 1. Develop a C++ wrapper focusing on RAII for resource management and modern C++ idioms. 2. Develop a .NET wrapper using P/Invoke, creating safe managed classes that encapsulate the native handles and data structures. 3. Develop a Python wrapper using pybind11 or ctypes, with a focus on integrating with NumPy for array data. 4. Develop a Rust wrapper using bindgen for raw bindings and creating a higher-level safe, idiomatic Rust crate. 5. Create a unified testing strategy with sample applications for each language to verify wrapper functionality against the reference engine.",
+			"reasoning": "Very high complexity due to the breadth of work. It's effectively four separate development tasks, each requiring expertise in a different language's FFI, memory management model, and idiomatic library design (e.g., P/Invoke for .NET, pybind11 for Python, bindgen for Rust). Ensuring consistency and correctness across all wrappers is a major challenge."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Create OpenUtau Manifest Generator & Sample Integration",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand the task 'Create OpenUtau Manifest Generator & Sample Integration' into 3 subtasks. The subtasks should cover: 1. Implementing a tool that reads a UCRA `resampler.json` and generates a corresponding OpenUtau-compatible `resampler.yaml` manifest. 2. Developing a sample adapter or plugin code that demonstrates how OpenUtau can load and call a UCRA-compliant engine using the generated manifest. 3. Writing documentation and a guide for OpenUtau users and developers on how to use the generator and integrate UCRA engines.",
+			"reasoning": "Medium complexity. The core task is a data transformation problem: mapping one JSON/YAML structure to another. The added complexity comes from needing to understand the specific semantics of the OpenUtau manifest format and demonstrating a functional integration, which requires knowledge of the target application's architecture."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Implement Core Testing & Validation Toolchain",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Expand the task 'Implement Core Testing & Validation Toolchain' into 4 subtasks. The subtasks should cover: 1. Designing and implementing the 'Golden Runner' framework for automated regression testing, including test case management and audio comparison logic. 2. Implementing a module to calculate F0 Root Mean Square Error (RMSE) between a reference and a synthesized F0 curve. 3. Implementing a module to calculate Mel-Cepstral Distortion (MCD) between two audio files. 4. Integrating these tools into a CI/CD pipeline to automatically run on code changes.",
+			"reasoning": "Moderately high complexity. Building a 'Golden Runner' requires a solid test framework architecture. Implementing audio-specific objective metrics like F0 RMSE and MCD requires signal processing knowledge and careful validation to ensure the calculations are correct and comparable to industry standards."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Develop Flag Standardization & Mapping Tool",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand the task 'Develop Flag Standardization & Mapping Tool' into 3 subtasks. The subtasks should cover: 1. Designing a schema or format for defining the flag mapping rules (e.g., in JSON or YAML). 2. Implementing the core mapping engine that takes a set of legacy flags and a rule set, and outputs a standardized UCRA flag set. 3. Creating a command-line interface for the tool and writing tests using rule sets for at least two different legacy resamplers.",
+			"reasoning": "Medium-low complexity. The core of the task is to build a rule-based data transformation engine. While the rules themselves can be intricate, the implementation is relatively straightforward and doesn't involve complex algorithms, real-time constraints, or difficult third-party integrations."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Finalize Documentation & Distribution Artifacts",
+			"complexityScore": 5,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Expand the task 'Finalize Documentation & Distribution Artifacts' into 4 subtasks. The subtasks should cover: 1. Writing the formal API and manifest schema reference documentation (`api_ucra.md`, `spec_manifest.md`). 2. Writing detailed integration guides for developers and end-users (for OpenUtau, etc.). 3. Creating build and packaging scripts to assemble the final distribution artifacts (headers, libs, binaries, examples) for multiple platforms. 4. Performing a final review of all documentation and repository structure, and adding licensing information.",
+			"reasoning": "Medium complexity, not due to technical difficulty but due to the sheer volume, scope, and importance of the work. Writing clear, comprehensive documentation for multiple audiences and creating polished, cross-platform release artifacts requires significant effort and organizational skill."
+		}
+	]
+}

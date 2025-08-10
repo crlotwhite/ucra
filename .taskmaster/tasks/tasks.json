@@ -9,8 +9,63 @@
         "testStrategy": "Compile `ucra.h` with a dummy C file to ensure syntax correctness. Write basic unit tests for struct sizes and ensure function signatures are correctly exposed (even if they are stubs initially).",
         "priority": "high",
         "dependencies": [],
-        "status": "Not Started",
-        "subtasks": []
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Header File and Define Fundamental Types",
+            "description": "Create the `ucra.h` file with standard include guards, `extern \"C\"` blocks for C++ compatibility, and API visibility macros (e.g., `UCRA_API`). Define fundamental C99-compatible types such as `UCRA_Handle` and fixed-width integers from `<stdint.h>`.",
+            "dependencies": [],
+            "details": "This initial setup ensures a clean, cross-platform, and C99-compatible foundation for all subsequent API definitions. It establishes the basic scaffolding required before defining complex data structures or functions.",
+            "status": "pending",
+            "testStrategy": "Verify the header compiles successfully on its own with a C99-compliant compiler. Check that the `extern \"C\"` block is correctly placed."
+          },
+          {
+            "id": 2,
+            "title": "Define Core Data Structures",
+            "description": "Implement the C struct definitions for `UCRA_KeyValue`, `UCRA_F0Curve`, `UCRA_EnvCurve`, and `UCRA_NoteSegment`. These structures represent the primary inputs for the rendering engine.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Focus on a clear and stable ABI by using fixed-size types and pointers for variable-length data. Add comments to clarify memory ownership rules for any pointers within the structs (e.g., who is responsible for allocating/freeing curve data).",
+            "status": "pending",
+            "testStrategy": "Write a small C program that includes the header and uses `sizeof()` on each structure to log its size, ensuring the memory layout is as expected and stable across compiles."
+          },
+          {
+            "id": 3,
+            "title": "Define Configuration and Result Structures",
+            "description": "Implement the C struct definitions for `UCRA_RenderConfig` and `UCRA_RenderResult`. These structures are used to control the rendering process and to return the generated audio data and metadata.",
+            "dependencies": [
+              "1.2"
+            ],
+            "details": "`UCRA_RenderConfig` will aggregate all settings required for a render call. `UCRA_RenderResult` will contain a pointer to the output PCM buffer and its size. Memory management for the output buffer must be clearly documented.",
+            "status": "pending",
+            "testStrategy": "Extend the `sizeof()` test program to include these new structures. Review struct members to ensure they cover all necessary configuration and result parameters."
+          },
+          {
+            "id": 4,
+            "title": "Define Error Code Enumeration",
+            "description": "Define the `UCRA_Result` enumeration based on the specifications in section 6.3. This will provide a standardized set of codes for success, warnings, and errors returned by API functions.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "The enumeration should be comprehensive, including codes for success (`UCRA_SUCCESS`), invalid arguments, memory allocation failures, and other engine-specific errors. This is critical for robust error handling in client applications.",
+            "status": "pending",
+            "testStrategy": "Check that the enum values are distinct and that the naming convention is consistent. Ensure a `UCRA_SUCCESS` or `UCRA_OK` value is defined as 0."
+          },
+          {
+            "id": 5,
+            "title": "Declare Core Engine Function Signatures and Finalize Header",
+            "description": "Add the C function declarations for the core API: `ucra_engine_create`, `ucra_engine_destroy`, `ucra_engine_getinfo`, and `ucra_render`. These declarations will use the previously defined structures and error codes.",
+            "dependencies": [
+              "1.3",
+              "1.4"
+            ],
+            "details": "Each function signature must be prefixed with the `UCRA_API` macro for proper symbol visibility. Add Doxygen-style comments to each function explaining its purpose, parameters, and return value. This completes the public interface defined in the parent task.",
+            "status": "pending",
+            "testStrategy": "Create a dummy C file that includes the final `ucra.h` and declares stub implementations for each function. Compile this dummy file to ensure all types, structures, and function signatures are syntactically correct and linkable."
+          }
+        ]
       },
       {
         "id": 2,
@@ -22,8 +77,61 @@
         "dependencies": [
           1
         ],
-        "status": "Not Started",
-        "subtasks": []
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define and Formalize the resampler.json Schema",
+            "description": "Create a formal, machine-readable definition of the `resampler.json` manifest schema as specified in the UCRA documentation (section 6.4). This will serve as the single source of truth for validation.",
+            "dependencies": [],
+            "details": "Author a JSON Schema file (`resampler.schema.json`) that specifies all required and optional fields, data types, and constraints. This includes the structure for `entry` points, `audio` capabilities (sample_rate, bit_depth), and the `flags` array, where each flag has a defined `name`, `type`, `description`, and `range`.",
+            "status": "pending",
+            "testStrategy": "Validate the created schema file using a standard JSON Schema validator. Manually review the schema against the project's specification document to ensure all requirements from section 6.4 are accurately represented."
+          },
+          {
+            "id": 2,
+            "title": "Evaluate and Select a C/C++ JSON Library",
+            "description": "Research, compare, and select a suitable JSON parsing library for the SDK, prioritizing C99 compatibility, performance, low dependency footprint, and ease of integration.",
+            "dependencies": [],
+            "details": "Evaluate at least two candidate libraries (e.g., Jansson, RapidJSON). Create a minimal proof-of-concept for each to assess API ergonomics and parsing performance. The final decision must be documented, justifying the choice based on project requirements.",
+            "status": "pending",
+            "testStrategy": "Benchmark the parsing speed and memory usage of the candidate libraries with a sample large manifest file. Verify that the chosen library can be successfully compiled and linked within the existing SDK build system."
+          },
+          {
+            "id": 3,
+            "title": "Implement Core Parser and Data Loading",
+            "description": "Implement the initial parser logic to read a `resampler.json` file from a given path and parse it into a generic in-memory JSON object using the selected library.",
+            "dependencies": [
+              "2.2"
+            ],
+            "details": "Create a function within the SDK that accepts a file path string. This function will handle file I/O, read the contents into a buffer, and use the chosen JSON library to parse the buffer. It must gracefully handle file-not-found errors and JSON syntax errors, returning distinct error codes.",
+            "status": "pending",
+            "testStrategy": "Test the loading function with a syntactically valid JSON file, a file with JSON syntax errors, a non-existent file path, and an empty file to ensure all error conditions are handled correctly and reported."
+          },
+          {
+            "id": 4,
+            "title": "Implement Schema Validation Logic",
+            "description": "Integrate a validation step that checks the parsed JSON object against the formal schema defined in subtask 2.1, ensuring the manifest's structure and values are compliant.",
+            "dependencies": [
+              "2.1",
+              "2.3"
+            ],
+            "details": "After a successful parse, invoke a validation routine on the in-memory JSON object. This routine will use the `resampler.schema.json` file to verify the presence of required fields, correct data types, and adherence to value constraints (e.g., enum values, numerical ranges). The parser must reject non-compliant manifests and provide a descriptive error.",
+            "status": "pending",
+            "testStrategy": "Create a suite of invalid manifest files, each with a specific error (e.g., missing 'entry', wrong data type for 'sample_rate', flag value outside its range). Verify the parser rejects each file and returns an appropriate error message."
+          },
+          {
+            "id": 5,
+            "title": "Map Validated JSON to Internal SDK Data Structures",
+            "description": "Develop the logic to traverse the validated JSON object and populate the SDK's native C data structures with the engine's capabilities.",
+            "dependencies": [
+              "2.4"
+            ],
+            "details": "Create a private helper function that takes the validated JSON object as input. This function will extract the values for `entry`, `audio`, and `flags`, and map them to the corresponding fields in the engine's internal capability struct. This includes iterating the `flags` array and populating an array of flag definition structs within the SDK.",
+            "status": "pending",
+            "testStrategy": "Parse several valid but diverse manifests (e.g., one with no flags, one with multiple flags of all supported types). After parsing, use a test harness to inspect the internal SDK data structures and verify that all fields have been populated with the correct values and types from the JSON file."
+          }
+        ]
       },
       {
         "id": 3,
@@ -36,8 +144,64 @@
           1,
           2
         ],
-        "status": "Not Started",
-        "subtasks": []
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement CLI Argument Parsing Framework",
+            "description": "Set up the basic executable project structure and implement a robust command-line argument parser to handle all standard UTAU resampler flags.",
+            "dependencies": [],
+            "details": "Use a suitable library (e.g., clap for Rust, argparse for C++) to define and parse arguments like --input, --output, --note, --tempo, --flags, --f0-curve, --vb-root, --oto, and --rate. The parser must validate the presence of required arguments and handle basic data type conversions.",
+            "status": "pending",
+            "testStrategy": "Create unit tests that pass various combinations of valid and invalid CLI arguments to the parser, verifying that it correctly extracts values and reports errors for missing or malformed arguments."
+          },
+          {
+            "id": 2,
+            "title": "Implement Engine Selection via Manifest Parsing",
+            "description": "Implement the logic to locate, parse, and interpret the `resampler.json` manifest from the voicebank directory to determine the correct rendering engine and its configuration.",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "Based on the `--vb-root` argument provided by the parser, locate and parse the `resampler.json` file. Extract the engine ID and any default or engine-specific settings. This information is critical for populating the render configuration in a later step.",
+            "status": "pending",
+            "testStrategy": "Test with various valid and malformed `resampler.json` files. Verify that the correct engine ID is selected and that parsing errors are handled gracefully."
+          },
+          {
+            "id": 3,
+            "title": "Map CLI Arguments to `UCRA_NoteSegment` Structure",
+            "description": "Convert the parsed command-line arguments and associated files related to the specific note into a populated `UCRA_NoteSegment` structure.",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "Process the `--note`, `--input` (source WAV), and `--f0-curve` arguments. This includes reading the temporary F0 curve file from disk, parsing its contents, and populating all relevant fields in the `UCRA_NoteSegment` instance, such as pitch, source file path, and the F0 data.",
+            "status": "pending",
+            "testStrategy": "Provide mock CLI arguments and temporary files (e.g., a sample F0 curve). Verify that the resulting `UCRA_NoteSegment` structure is populated with the expected values and data."
+          },
+          {
+            "id": 4,
+            "title": "Map CLI Arguments to `UCRA_RenderConfig` Structure",
+            "description": "Convert the parsed command-line arguments and manifest data related to the rendering environment into a populated `UCRA_RenderConfig` structure.",
+            "dependencies": [
+              "3.1",
+              "3.2"
+            ],
+            "details": "Process arguments like `--tempo`, `--flags`, `--rate`, and `--oto`. Combine this with the engine configuration data loaded from the manifest to populate the `UCRA_RenderConfig` structure, including the selected engine ID, sample rate, and engine-specific flags.",
+            "status": "pending",
+            "testStrategy": "Given a set of CLI arguments and a mock manifest object, verify that the `UCRA_RenderConfig` is created with the correct tempo, flags, sample rate, and engine ID."
+          },
+          {
+            "id": 5,
+            "title": "Implement UCRA API Invocation and Output Management",
+            "description": "Call the core UCRA rendering function using the populated data structures, manage the rendering lifecycle, and handle file I/O for the final output.",
+            "dependencies": [
+              "3.3",
+              "3.4"
+            ],
+            "details": "Pass the fully populated `UCRA_NoteSegment` and `UCRA_RenderConfig` structures to the main UCRA rendering API function. Handle the returned audio buffer, write it to the file specified by the `--output` argument, and perform cleanup of any temporary files. Implement error handling for API failures.",
+            "status": "pending",
+            "testStrategy": "Using mock `UCRA_NoteSegment` and `UCRA_RenderConfig` objects and a stubbed UCRA API, verify that the API is called with the correct parameters and that the mock output is written to the correct file path."
+          }
+        ]
       },
       {
         "id": 4,
@@ -49,8 +213,63 @@
         "dependencies": [
           1
         ],
-        "status": "Not Started",
-        "subtasks": []
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define and Implement the Internal Stream State Handle",
+            "description": "Design and implement the internal C struct that will manage the state of an active audio stream. This struct will serve as the handle, encapsulating all necessary data for the streaming process, including configuration, buffers, and synchronization primitives.",
+            "dependencies": [],
+            "details": "The struct (e.g., `UCRA_StreamState`) must contain a reference to the `UCRA_RenderConfig` (specifically `block_size`), the `UCRA_PullPCM` callback function pointer, internal buffers for PCM data (e.g., a ring buffer), the current read/write positions, and a mutex for ensuring thread-safe access to the shared state.",
+            "status": "pending",
+            "testStrategy": "Write unit tests to verify the size and layout of the struct. Create a simple test to allocate and initialize the struct with default values and check for correctness."
+          },
+          {
+            "id": 2,
+            "title": "Implement Stream Lifecycle Functions: `ucra_stream_open` and `ucra_stream_close`",
+            "description": "Implement the core functions for initializing and terminating a streaming session. `ucra_stream_open` will allocate and configure the stream state handle, while `ucra_stream_close` will safely release all associated resources.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "`ucra_stream_open` must allocate a `UCRA_StreamState` struct, initialize its fields based on the provided `UCRA_RenderConfig` and `UCRA_PullPCM` callback, allocate the internal audio buffer, and initialize the mutex. `ucra_stream_close` must perform the reverse: destroy the mutex, free the buffer, and free the state struct itself, ensuring no memory leaks.",
+            "status": "pending",
+            "testStrategy": "Test that `ucra_stream_open` returns a valid handle on success and a null pointer on failure (e.g., invalid config). Verify that calling `ucra_stream_close` on a valid handle successfully deallocates resources (checked with memory analysis tools)."
+          },
+          {
+            "id": 3,
+            "title": "Develop the Internal Buffering and `UCRA_PullPCM` Callback Logic",
+            "description": "Implement the core data management logic that populates the internal stream buffer by invoking the `UCRA_PullPCM` callback provided by the host application.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "This involves creating a private function (e.g., `refill_stream_buffer`) that is responsible for calling the `UCRA_PullPCM` function pointer stored in the stream state. This function will request new note segments and render parameters from the host, which are then used to render the next chunk of audio into the stream's internal buffer. The implementation should handle the circular nature of the buffer correctly.",
+            "status": "pending",
+            "testStrategy": "Create a mock `UCRA_PullPCM` callback that provides predictable data (e.g., a sine wave). Unit test the `refill_stream_buffer` function to ensure it correctly calls the mock callback and writes the returned data into the internal buffer without overflows."
+          },
+          {
+            "id": 4,
+            "title": "Implement the `ucra_stream_read` Public API Function",
+            "description": "Implement the `ucra_stream_read` function, which allows a client to pull a block of rendered PCM data from the stream's internal buffer.",
+            "dependencies": [
+              "4.2",
+              "4.3"
+            ],
+            "details": "This function will copy a requested number of samples from the internal buffer to the user-provided output buffer. If the internal buffer does not contain enough data, it must trigger the `refill_stream_buffer` logic (from subtask 4.3) to populate it. All access to the buffer and state must be protected by the mutex defined in the stream state.",
+            "status": "pending",
+            "testStrategy": "Test `ucra_stream_read` by requesting various block sizes. Verify that it correctly returns data from the buffer. Test edge cases, such as requesting more data than is available, which should trigger the refill logic. Ensure the function blocks appropriately until data is available."
+          },
+          {
+            "id": 5,
+            "title": "Ensure Thread Safety and Create an Integration Test Client",
+            "description": "Perform a full review of the streaming implementation to guarantee thread safety and develop a test client that validates the API's performance and stability under concurrent access.",
+            "dependencies": [
+              "4.4"
+            ],
+            "details": "Review all functions (`open`, `read`, `close`) to confirm that all accesses to the shared `UCRA_StreamState` are correctly protected by the mutex. Create a standalone test program that simulates a host like OpenUtau: one thread acts as an audio callback, continuously calling `ucra_stream_read`, while the main thread manages the stream's lifecycle. The test should use a mock `UCRA_PullPCM` to provide data.",
+            "status": "pending",
+            "testStrategy": "Run the test client under a thread sanitizer (like TSan) to detect data races. The client should verify the continuity of the audio data received from `ucra_stream_read` and measure the latency between the `UCRA_PullPCM` call and the data being read to ensure it meets performance targets."
+          }
+        ]
       },
       {
         "id": 5,
@@ -65,8 +284,63 @@
           3,
           4
         ],
-        "status": "Not Started",
-        "subtasks": []
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up build system and link to WORLD/LLSM2",
+            "description": "Configure CMake (or chosen build system) to fetch/build WORLD (or LLSM2), set include/library paths, add options for static/dynamic linking, and verify a minimal compile/link against a dummy source.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 5
+          },
+          {
+            "id": 2,
+            "title": "Implement ucra_engine_create/destroy/getinfo",
+            "description": "Implement engine lifecycle: allocate internal state, load model/tables as needed, expose capabilities via ucra_engine_getinfo; ensure error handling and resource cleanup.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.1"
+            ],
+            "parentTaskId": 5
+          },
+          {
+            "id": 3,
+            "title": "Implement offline ucra_render with data mapping",
+            "description": "Translate UCRA_NoteSegment/UCRA_RenderConfig into engine-specific inputs, run synthesis with WORLD/LLSM2, and return PCM + metadata in UCRA_RenderResult.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.2"
+            ],
+            "parentTaskId": 5
+          },
+          {
+            "id": 4,
+            "title": "Implement streaming API ucra_stream_* for wrapper",
+            "description": "Wire the wrapper to support ucra_stream_open/read/close using the chosen engine, with buffering and thread-safety.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.3"
+            ],
+            "parentTaskId": 5
+          },
+          {
+            "id": 5,
+            "title": "Create fidelity test suite against native engine",
+            "description": "Build tests that render sample inputs with the wrapper and compare against native WORLD/LLSM2 outputs (WAV diffs and objective metrics). Integrate into CI.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.3",
+              "5.4"
+            ],
+            "parentTaskId": 5
+          }
+        ]
       },
       {
         "id": 6,
@@ -79,8 +353,59 @@
           1,
           5
         ],
-        "status": "Not Started",
-        "subtasks": []
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop Idiomatic C++ SDK Wrapper",
+            "description": "Create a header-only or compiled C++ wrapper for the UCRA C API, focusing on modern C++ idioms for resource management and usability.",
+            "dependencies": [],
+            "details": "Implement RAII principles for all UCRA handles (e.g., Engine, Voicebank) to ensure automatic resource cleanup. Encapsulate C structs like UCRA_NoteSegment and UCRA_RenderConfig within C++ classes. Provide clear error handling, potentially using C++ exceptions for API errors. The wrapper should feel natural to a C++ developer.",
+            "status": "pending",
+            "testStrategy": "Write C++ unit tests using a framework like GTest to verify object lifecycle (construction/destruction), method calls, and correct exception throwing on error conditions. Ensure no memory leaks using Valgrind or a similar tool."
+          },
+          {
+            "id": 2,
+            "title": "Develop .NET SDK Wrapper via P/Invoke",
+            "description": "Create a .NET Standard library that wraps the native UCRA C API using Platform Invocation Services (P/Invoke) for use in C#, F#, and other .NET languages.",
+            "dependencies": [],
+            "details": "Define P/Invoke signatures for all exported C API functions. Create C# classes and structs that mirror the C API structures, using appropriate marshalling attributes (e.g., StructLayout). Implement the IDisposable pattern for classes managing native UCRA handles to ensure deterministic resource cleanup. Convert C API error codes into .NET exceptions.",
+            "status": "pending",
+            "testStrategy": "Create an NUnit or xUnit test project that references the wrapper DLL. Write tests that call all wrapped functions, verify correct data marshalling, and confirm that exceptions are thrown for invalid API usage. Use a memory profiler to check for unreleased native handles."
+          },
+          {
+            "id": 3,
+            "title": "Develop Python SDK Wrapper with pybind11 and NumPy Integration",
+            "description": "Build a Python extension module using pybind11 to provide a high-level, Pythonic interface to the UCRA API, with a focus on data science ecosystem compatibility.",
+            "dependencies": [],
+            "details": "Write C++ binding code using pybind11 to expose UCRA functions and data structures as Python classes and methods. Implement automatic type conversions for array-like data (e.g., F0 curves, audio buffers) to and from NumPy arrays. Manage object lifetimes by tying Python object garbage collection to the underlying C resource cleanup. Raise Python exceptions for UCRA errors.",
+            "status": "pending",
+            "testStrategy": "Use the pytest framework to write tests that import the compiled module. Verify object creation, method calls, and data exchange with NumPy arrays. Test that Python's garbage collector correctly triggers the cleanup of native resources by tracking allocations."
+          },
+          {
+            "id": 4,
+            "title": "Develop Safe and Idiomatic Rust SDK Wrapper",
+            "description": "Create a Rust crate that provides a safe, high-level interface over the raw C API bindings generated by bindgen.",
+            "dependencies": [],
+            "details": "First, create a low-level `-sys` crate using `bindgen` to generate the `unsafe` FFI bindings. Then, create the primary wrapper crate that builds safe abstractions on top. Use Rust's ownership and borrowing rules to ensure memory safety. Implement the `Drop` trait for types managing C resources. Convert C-style error codes into Rust's `Result<T, E>` type.",
+            "status": "pending",
+            "testStrategy": "Implement integration tests within the crate's `tests` directory. Use `cargo test` to verify the safe API's functionality, error handling via `Result`, and that resource cleanup via `Drop` is performed correctly. Ensure the API prevents common misuses at compile time."
+          },
+          {
+            "id": 5,
+            "title": "Implement Cross-Language Wrapper Integration and Verification",
+            "description": "Develop sample applications for each language (C++, .NET, Python, Rust) to verify that all wrappers produce identical output for a given input, confirming functional equivalence.",
+            "dependencies": [
+              "6.1",
+              "6.2",
+              "6.3",
+              "6.4"
+            ],
+            "details": "Create four distinct command-line applications, one for each language. Each application will use its respective SDK wrapper to perform an identical rendering task: load a specific voicebank, define a standard note segment, and render it to a WAV file. This process will serve as both a usage example and a final integration test.",
+            "status": "pending",
+            "testStrategy": "A master script will execute all four sample applications. It will then compare the resulting WAV files against a pre-generated 'golden' WAV file created by a direct C API call. The test passes if all four outputs are bit-for-bit identical to the golden file."
+          }
+        ]
       },
       {
         "id": 7,
@@ -94,8 +419,60 @@
           5,
           6
         ],
-        "status": "Not Started",
-        "subtasks": []
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Analyze and Document OpenUtau Resampler Manifest Schema",
+            "description": "Research and formally document the structure and all relevant fields of an OpenUtau resampler manifest file (typically `resampler.yaml`). This documentation will serve as the target specification for the generator.",
+            "dependencies": [],
+            "details": "Create a schema definition or detailed document outlining the manifest structure. This must include how to define the resampler's name, executable path, supported flags (options) with their types (int, float, string, bool), ranges, and default values, and other capabilities like streaming support.",
+            "status": "pending",
+            "testStrategy": "Validate the documented schema by comparing it against existing manifests for popular OpenUtau resamplers like moresampler, worldline, and the default wavtool."
+          },
+          {
+            "id": 2,
+            "title": "Implement UCRA-to-OpenUtau Manifest Mapping Logic",
+            "description": "Develop the core software logic that reads data from a UCRA `resampler.json` file and translates it into the OpenUtau manifest structure defined in the previous subtask.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "The logic must map the `name` and `version` fields, construct the executable path to point to the UCRA CLI bridge, and translate the UCRA `flags` array into OpenUtau's `options` list. This includes correctly mapping flag names, descriptions, abbreviations, types, and value ranges.",
+            "status": "pending",
+            "testStrategy": "Write unit tests that provide various `resampler.json` inputs (with different flag types and constraints) and assert that the generated output data structure correctly matches the expected OpenUtau manifest format."
+          },
+          {
+            "id": 3,
+            "title": "Build Manifest Generator CLI Tool",
+            "description": "Package the mapping logic into a standalone command-line interface (CLI) tool that takes a UCRA `resampler.json` file as input and produces a ready-to-use OpenUtau `resampler.yaml` manifest file.",
+            "dependencies": [
+              "7.2"
+            ],
+            "details": "The CLI tool should accept arguments for input and output file paths (e.g., `ucra-manifest-gen --input engine/resampler.json --output openutau/resamplers/engine.yaml`). Implement robust error handling for file I/O issues and malformed JSON input.",
+            "status": "pending",
+            "testStrategy": "Execute the CLI tool with the reference engine's `resampler.json`. Place the generated manifest into an OpenUtau resamplers directory and launch OpenUtau to verify the engine and its flags are correctly listed and configurable in the UI."
+          },
+          {
+            "id": 4,
+            "title": "Develop .NET Adapter for UCRA Streaming API",
+            "description": "Create a .NET class library that serves as a high-level adapter for OpenUtau, using P/Invoke to call the UCRA C API's streaming functions.",
+            "dependencies": [],
+            "details": "This adapter will wrap the `ucra_stream_open`, `ucra_stream_read`, and `ucra_stream_close` functions. It must handle the marshalling of complex data structures like `UCRA_RenderConfig` and `UCRA_NoteSegment` from C# objects to unmanaged memory pointers, ensuring type safety and correct memory management. This component is a specific implementation or consumer of the general .NET wrapper from Task 6.",
+            "status": "pending",
+            "testStrategy": "Create a .NET unit test project that uses the adapter to call the underlying UCRA streaming API (linked with the reference engine). Verify that audio data can be successfully streamed and that all data structures are marshalled without corruption or memory leaks."
+          },
+          {
+            "id": 5,
+            "title": "Implement and Demonstrate OpenUtau Caching and Preview Integration",
+            "description": "Create a proof-of-concept .NET application or sample code that demonstrates how OpenUtau can use the .NET adapter to implement its preview and caching mechanisms.",
+            "dependencies": [
+              "7.4"
+            ],
+            "details": "The sample will implement the specified caching logic by generating a key using `hash(voicebank+segment+flags)`. It will first check a local cache for this key. If a miss occurs, it will use the adapter to call the UCRA streaming API to render the audio, which is then stored in the cache. This demonstrates the complete render-on-demand workflow for UI previews.",
+            "status": "pending",
+            "testStrategy": "Run the proof-of-concept application. Render a specific note segment twice. Verify that the first render triggers a call to the UCRA API, while the second render is served directly from the cache, confirming the hashing and caching logic works as intended. Monitor the streaming output to ensure low-latency audio chunk delivery."
+          }
+        ]
       },
       {
         "id": 8,
@@ -107,8 +484,61 @@
         "dependencies": [
           5
         ],
-        "status": "Not Started",
-        "subtasks": []
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Golden Runner Test Harness",
+            "description": "Develop the core framework for the 'Golden Runner' that can discover, manage, and execute a suite of test cases. This harness will be responsible for invoking the rendering engine for each test case.",
+            "dependencies": [],
+            "details": "The harness should read a configuration file or directory structure that defines the test suite (e.g., pairs of input UST/musicXML and a corresponding 'golden' output WAV). It will then iterate through each test case, execute the rendering engine (e.g., via the `resampler.exe` bridge from Task 3), and pass the generated output and golden WAV paths to subsequent validation modules.",
+            "status": "pending",
+            "testStrategy": "Create a mock test suite with dummy input files. Verify the harness correctly identifies all test cases and successfully calls a placeholder script representing the rendering engine, confirming that file paths are handled correctly."
+          },
+          {
+            "id": 2,
+            "title": "Develop Audio Comparison Module",
+            "description": "Create a module to compare a rendered output WAV against a 'golden' reference WAV and determine if they match.",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Implement two levels of comparison: 1) A strict, bit-for-bit identity check using a cryptographic hash (e.g., SHA-256) to detect any change. 2) A more lenient sample-based difference calculation (e.g., signal-to-noise ratio or RMS difference) to allow for non-deterministic but perceptually identical outputs. The module should return a clear pass/fail status.",
+            "status": "pending",
+            "testStrategy": "Test the module with pairs of WAV files: identical files, files with minor floating-point differences, and audibly different files. Ensure the checksum fails for any non-identical pair, while the sample-based comparison passes for perceptually similar audio."
+          },
+          {
+            "id": 3,
+            "title": "Implement F0 RMSE Calculation Utility",
+            "description": "Create a standalone utility to calculate the F0 Root Mean Square Error (RMSE) between a ground truth F0 curve and an estimated F0 curve.",
+            "dependencies": [],
+            "details": "The utility must parse F0 data from a simple text format (e.g., two columns: time in seconds, frequency in Hz). It will need to perform time alignment, likely via linear interpolation, to ensure F0 values are compared at matching time points. The final calculation must follow the standard RMSE formula as specified in section 11.",
+            "status": "pending",
+            "testStrategy": "Validate the utility using synthetic F0 data with pre-calculated, known RMSE values. Test cases should include identical curves (RMSE=0), curves with a constant offset, and curves with random noise."
+          },
+          {
+            "id": 4,
+            "title": "Implement MCD(13) Calculation Utility",
+            "description": "Develop a utility to compute the Mel-Cepstral Distortion (MCD) between a golden reference audio file and a synthesized audio file.",
+            "dependencies": [],
+            "details": "This utility will use a signal processing library to perform the following steps: load the two WAV files, extract the first 13 Mel-Frequency Cepstral Coefficients (MFCCs) from each, use Dynamic Time Warping (DTW) to align the two MFCC sequences, and then calculate the Euclidean distance between the aligned coefficients to get the final MCD score, as per section 11.",
+            "status": "pending",
+            "testStrategy": "Verify the implementation by comparing its output against a known, trusted MCD calculation tool using a reference dataset of audio pairs. Test with identical audio files to ensure the MCD score is zero."
+          },
+          {
+            "id": 5,
+            "title": "Integrate and Automate the Full Validation Toolchain",
+            "description": "Combine the Golden Runner harness, audio comparison, and metric calculation utilities into a single, automated command-line tool that produces a consolidated test report.",
+            "dependencies": [
+              "8.1",
+              "8.2",
+              "8.3",
+              "8.4"
+            ],
+            "details": "This final subtask involves creating a main script or executable that orchestrates the entire process. It will run the test harness (Subtask 8.1), which in turn will call the audio comparison (Subtask 8.2), F0 RMSE (Subtask 8.3), and MCD (Subtask 8.4) utilities for each test case. The results should be aggregated into a single, human-readable report (e.g., console output, Markdown, or JSON file) that summarizes the pass/fail status and objective metrics for the entire suite.",
+            "status": "pending",
+            "testStrategy": "Execute the complete toolchain on a small, representative set of golden test cases. Manually verify that the final report accurately reflects the expected outcomes from each individual component for all test cases."
+          }
+        ]
       },
       {
         "id": 9,
@@ -121,8 +551,62 @@
           2,
           3
         ],
-        "status": "Not Started",
-        "subtasks": []
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define Flag Mapping Rule Schema",
+            "description": "Design and document a machine-readable schema, likely in JSON, for defining the mapping rules between a legacy engine's flags and the standardized UCRA flags.",
+            "dependencies": [],
+            "details": "The schema must be capable of expressing source and target flag names, data types, value transformations (e.g., direct copy, linear scaling, discrete value mapping), rules for applying default values, and strategies for resolving conflicts when multiple legacy flags map to a single UCRA flag. This forms the blueprint for all mapping operations.",
+            "status": "pending",
+            "testStrategy": "Create several example mapping rule files for `moresampler` and `tn_fnds` that cover all features of the schema. Validate these files against a formal JSON Schema definition to ensure correctness and completeness."
+          },
+          {
+            "id": 2,
+            "title": "Implement Mapping Rule Loader and Validator",
+            "description": "Develop a software module responsible for loading and validating mapping rule files from disk based on the schema defined in subtask 9.1.",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "This component will parse a given rule file (e.g., `moresampler_map.json`), validate its structure and values against the defined schema, and load the rules into an efficient in-memory data structure. It must provide clear, actionable error messages for malformed or invalid rule files.",
+            "status": "pending",
+            "testStrategy": "Test the loader with valid rule files, files containing schema violations (e.g., wrong data types, missing required fields), and syntactically incorrect JSON. Verify that valid files are parsed correctly and that all error conditions are handled gracefully."
+          },
+          {
+            "id": 3,
+            "title": "Develop Core Flag Transformation Engine",
+            "description": "Implement the core logic that takes a set of input legacy flags and applies the loaded mapping rules to produce a standardized set of UCRA flags.",
+            "dependencies": [
+              "9.2"
+            ],
+            "details": "This engine will receive a collection of legacy flags (as key-value pairs) and the in-memory rules from the loader. It will execute the defined transformations, apply default values for any missing UCRA flags specified in the rules, handle out-of-range value clamping or warnings, and resolve conflicts. The output will be a clean set of `UCRA_KeyValue` pairs.",
+            "status": "pending",
+            "testStrategy": "Write unit tests that feed the engine various sets of legacy flags and pre-loaded rules. Test cases should include simple 1-to-1 mapping, range conversions, application of defaults, conflict resolution, and handling of unsupported flags that should be ignored or trigger warnings."
+          },
+          {
+            "id": 4,
+            "title": "Build Standalone CLI for Rule Testing and Manifest Generation",
+            "description": "Create a standalone command-line tool that utilizes the mapping engine to allow for easy testing of rule files and generation of flag configurations.",
+            "dependencies": [
+              "9.3"
+            ],
+            "details": "This tool will take a path to a rule file and a string of legacy flags as command-line arguments. It will use the components from subtasks 9.2 and 9.3 to perform the transformation and print the resulting UCRA-compliant flags to standard output, along with any relevant warnings to standard error. This serves as a utility for developers and power users.",
+            "status": "pending",
+            "testStrategy": "Execute the CLI tool from the command line with various arguments, simulating user interaction. Verify that the output on stdout is the correctly transformed set of flags and that stderr contains expected warnings for unsupported or out-of-range legacy flags."
+          },
+          {
+            "id": 5,
+            "title": "Integrate Mapping Module into Legacy CLI Bridge",
+            "description": "Package the mapping functionality into a reusable library and integrate it into the `resampler.exe` Legacy CLI Bridge (Task 3).",
+            "dependencies": [
+              "9.3"
+            ],
+            "details": "Refactor the rule loader and transformation engine into a module with a well-defined API. Modify the `resampler.exe` bridge implementation to call this module after it parses the initial command-line arguments. The bridge will pass the raw legacy flags to the mapping module and use the returned standardized UCRA flags to populate the `UCRA_RenderConfig` structure before calling the core UCRA API.",
+            "status": "pending",
+            "testStrategy": "Run the `resampler.exe` bridge with command sets for different legacy engines. Use logging or a debugger to inspect the state after the mapping module has run, verifying that the `UCRA_RenderConfig` contains the correctly transformed flag values."
+          }
+        ]
       },
       {
         "id": 10,
@@ -142,13 +626,69 @@
           8,
           9
         ],
-        "status": "Not Started",
-        "subtasks": []
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Document Core UCRA API and Manifest Schema",
+            "description": "Write the technical specification documents for the UCRA C API (`ucra.h`) and the `resampler.json` manifest format, which form the foundation for all other documentation.",
+            "dependencies": [],
+            "details": "Create `docs/api_ucra.md` detailing all functions, data structures, and error codes defined in Task 1. Create `docs/spec_manifest.md` to define the complete JSON schema for engine manifests, explaining all keys, value types, and providing usage examples.",
+            "status": "pending",
+            "testStrategy": "Review documents against the source code (`ucra.h`) and reference implementation (Task 5) for technical accuracy. Validate any JSON examples against a schema validator."
+          },
+          {
+            "id": 2,
+            "title": "Develop Integration Guide for UTAU-style Editors",
+            "description": "Create a step-by-step guide for integrating UCRA engines into UTAU and similar editors by using the legacy CLI bridge (`resampler.exe`).",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Write `docs/guides/utau.md` to explain how to configure a UTAU-like editor to use the `resampler.exe` from Task 3 as a drop-in replacement. The guide should cover basic setup, flag usage, and troubleshooting.",
+            "status": "pending",
+            "testStrategy": "Perform a clean installation of UTAU, configure it with the CLI bridge and reference engine as per the guide, and render a sample UST project to verify functionality."
+          },
+          {
+            "id": 3,
+            "title": "Develop Integration Guide for OpenUtau",
+            "description": "Create a comprehensive guide for integrating UCRA engines into OpenUtau using its native resampler manifest system.",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Write `docs/guides/openutau.md` explaining how to use the manifest generator tool from Task 7. The guide must detail how to add the generated manifest to OpenUtau and select the engine for a voicebank. Include screenshots for clarity.",
+            "status": "pending",
+            "testStrategy": "Use the manifest generator (Task 7) for the reference engine, follow the guide to install it in OpenUtau, and test both preview and final rendering to ensure it works as described."
+          },
+          {
+            "id": 4,
+            "title": "Assemble and Package Distribution Artifacts",
+            "description": "Gather all compiled binaries, headers, libraries, and tools, and organize them into the final, structured distribution package for release.",
+            "dependencies": [
+              "10.1",
+              "10.2",
+              "10.3"
+            ],
+            "details": "Create the final release directory structure. Place `ucra.h` in `sdk/include/`. Place compiled engine libraries in `engines/`. Place the `resampler.exe` (Task 3) and manifest generator (Task 7) in `tools/`. Bundle all documentation within the `docs/` directory. Create a release archive (e.g., .zip) of the complete package.",
+            "status": "pending",
+            "testStrategy": "On a clean system (or VM), extract the release archive and verify the file structure is correct. Confirm that the tools are executable and that a sample project can be compiled against the provided SDK."
+          },
+          {
+            "id": 5,
+            "title": "Finalize Licensing, README, and Conduct Package Review",
+            "description": "Perform a final review of the entire distribution package, ensure all components are correctly licensed, and update the root `README.md` for the release.",
+            "dependencies": [
+              "10.4"
+            ],
+            "details": "Proofread all documentation for clarity, grammar, and technical accuracy. Add a root `LICENSE` file for the project. Ensure all third-party licenses (e.g., for the WORLD engine from Task 5) are included and properly attributed. Update the main `README.md` with installation instructions and links to the full documentation.",
+            "status": "pending",
+            "testStrategy": "Have a team member conduct a peer review of the entire package. Follow the `README.md` instructions as a new user to test the setup process. Verify that all license files are present and correctly referenced."
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-08-10T12:56:02.632Z",
-      "updated": "2025-08-10T12:56:02.632Z",
+      "updated": "2025-08-10T12:58:04.269Z",
       "description": "Tasks for master context"
     }
   }
