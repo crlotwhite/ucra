@@ -1,0 +1,470 @@
+# UTAU 공통 Resampler API & SDK PRD
+
+작성일: 2025-08-10
+작성자: (초안)
+버전: v0.9 (초안)
+
+---
+
+## 0. 배경 & 목표
+
+UTAU 및 파생 에디터(OpenUtau, TuneLab 등) 생태계에는 다수의 resampler(예: moresampler, world4utau, straycat/straycrab, tn\_fnds, ESPER-Utau 등)가 혼재되어 있고, 각각 다른 CLI/플래그/입출력 스펙을 사용합니다. 또한 통계적/신호처리 기반(LLSM, WORLD)과 데이터 기반(ENUNU/NNSVS, DiffSinger 등) 엔진을 동일 인터페이스로 다루기 어렵습니다.
+
+본 PRD는 **에디터 ↔︎ Resampler** 간 상호운용을 위한 **공통 API(가칭: UCRA, UTAU Common Resampler API)** 와, 엔진 개발자의 구현을 돕는 **SDK** 및 **호환 어댑터/테스트 킷**을 정의합니다. 목표는 다음과 같습니다.
+
+* 서로 다른 엔진을 **통일된 ABI/CLI/IPC**로 호출
+* UTAU 레거시와 **완전 호환**(CLI 드롭인 교체) + OpenUtau/신규 에디터 **네이티브 통합**
+* **스트리밍/오프라인** 양 모드 지원, **저지연 미리듣기** 최적화
+* **Pitch/F0/에너지/포르타멘토/비브라토** 등 악상 데이터 표준 스키마 제공
+* **멀티플랫폼 빌드**(Win/macOS/Linux, x64/ARM)와 SIMD/GPU 확장 친화적 설계
+* **참조 구현**(WORLD/LLSM2 래퍼), **호환 레이어**(moresampler/tn\_fnds/straycat 등) 제공
+* **품질·성능 검증**을 위한 표준 벤치/메트릭·골든테스트 킷 제공
+
+---
+
+## 1. 범위
+
+### In Scope
+
+* 공통 API(ABI/C API) 및 상위 SDK(C++/C#/Python/Rust) 설계/배포
+* 레거시 UTAU CLI 호환 "브리지" 바이너리(resampler.exe/manifest)
+* OpenUtau/TuneLab용 통합 어댑터(Manifest/TLX Extension 샘플)
+* WORLD/LLSM2 기반 참조 엔진 및 샘플 코드
+* 플래그/파라미터 표준화와 변환 룰(기존 엔진 플래그 매핑)
+* 테스트·검증 툴체인(품질/성능/호환성)
+
+### Out of Scope (초기 버전)
+
+* 음원(voicebank) 포맷 표준화 자체는 다루지 않음(단, 메타 참조 스키마는 정의)
+* 딥러닝 학습 파이프라인(학습/데이터 구축)은 참고만 하고 SDK에 포함하지 않음
+
+---
+
+## 2. 이해당사자 & 사용자 페르소나
+
+* **에디터 개발자**: OpenUtau, TuneLab, 커스텀 DAW 플러그인 제작자
+* **엔진 개발자**: WORLD/LLSM2/ESPER/신규 DSP/AI 기반 엔진 작성자
+* **파워 유저/보컬에디터**: 기존 resampler와 동일 UX로 교체/비교/AB테스트 필요
+
+---
+
+## 3. 참고/대상 프로젝트 요약 (리서치 스냅샷)
+
+> 상세 비교표는 부록 A 참조.
+
+* **ciglet**: 경량 DSP 유틸(FFT/윈도/보간/피치 등) C99/ BSD
+* **libllsm / libllsm2**: 저수준 음성 분석·합성(피치 시프팅/접합/크로스페이드 등) C
+* **moresampler**: 고속·저노이즈 UTAU 레거시 엔진(폐소스 배포)
+* **OpenUtau**: 오픈소스 후속 에디터(Manifest 기반 resampler 통합)
+* **ENUNU**: NNSVS 기반의 UTAU 플러그인 워크플로우(딥러닝 엔진 연동)
+* **TuneLab**: 경량 에디터, 멀티 엔진 & 확장(tlx)
+* **world4utau / tn\_fnds / straycat / straycrab / ESPER-Utau**: WORLD/ESPER 계열 엔진
+
+이들의 공통분모는 **음소 단위 렌더링을 파일로 출력하는 비-스트리밍 CLI 모델**이며, 플래그 명세가 불일치합니다. OpenUtau는 "리샘플러 매니페스트"를 통해 기능/플래그를 선언할 수 있습니다.
+
+---
+
+## 4. 제품 비전 & 원칙
+
+1. **호환성 우선**: 기존 UST/voicebank/플래그를 망가뜨리지 않는다.
+2. **실시간성**: 15ms 이하 블록 지연으로 미리듣기(프리뷰) 가능.
+3. **확장성**: 신호처리/딥러닝 엔진 모두를 동일 API로 캡슐화.
+4. **투명성**: 기능·플래그·버전·라이선스가 Manifest로 기계 판독 가능.
+5. **재현성**: 결정적 렌더링 옵션 제공(랜덤 시드/수치 안정성/FP 동등성).
+
+---
+
+## 5. 시스템 개요
+
+```mermaid
+flowchart LR
+  E[Editor (UTAU/OpenUtau/TuneLab/CLI)] -->|UCRA SDK| A[Resampler Host Adapter]
+  A -->|ABI/IPC| B[Engine Impl. (WORLD/LLSM2/ESPER/AI)]
+  subgraph SDK/Tools
+    C[Manifest/Flag Mapper]
+    D[Test Harness/Goldens]
+    F[CLI Bridge (resampler.exe)]
+  end
+  E <-->|Manifest Discovery| C
+  E -->|Preview/Streaming| A
+  B -->|PCM/WAV/Meta| E
+  D -->|Quality/Perf Reports| E
+```
+
+---
+
+## 6. 공통 API 사양 (UCRA v1)
+
+### 6.1 개요
+
+* **호출 모델**: 오프라인 렌더(파일/메모리) + 선택적 **스트리밍**(pull)
+* **전달 단위**: NoteSegment → Engine 내부에서 프레임 처리 (f0/energy/time-warp)
+* **전송 방식**: $기본$ C ABI (동적 라이브러리), $옵션$ 로컬 IPC(gRPC/UDS)
+
+### 6.2 자료형 & 구조체 (핵심)
+
+```c
+// ucra.h  (C99, C ABI)
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define UCRA_API_VERSION 0x00010000
+
+typedef struct {
+  const char* key;         // "flag" 또는 확장 키
+  const char* value;       // 문자열 값 (엔진이 파싱)
+} UCRA_KeyValue;
+
+typedef struct {
+  const double* times_ms;  // 길이 n_f0, ms 단위
+  const double* f0_hz;     // 길이 n_f0, 0=무성
+  size_t n_f0;
+} UCRA_F0Curve;
+
+typedef struct {
+  const double* times_ms;  // 길이 n_env
+  const double* gain_db;   // 길이 n_env
+  size_t n_env;
+} UCRA_EnvCurve;
+
+typedef struct {
+  // 음소/알리아스와 OTO 메타
+  const char* alias;       // 예: "a R"
+  const char* oto_path;    // oto.ini 경로 (nullable)
+  const char* vb_root;     // 보이스뱅크 루트
+
+  // 시간/길이 파라미터 (UTAU OTO 호환)
+  double offset_ms;        // 샘플 시작 오프셋
+  double consonant_ms;     // 자음 길이(고정)
+  double cutoff_ms;        // 컷오프(>0:앞, <0:뒤)
+  double preutter_ms;      // 프리어터런스
+  double overlap_ms;       // 오버랩
+
+  // 악상/렌더 파라미터
+  double note_hz;          // 목표 기본주파수(센터)
+  double tempo_bpm;        // 템포
+  double length_ms;        // 세그먼트 길이(노트 길이)
+  double velocity;         // 타임스케일(UTAU velocity)
+  double volume_db;        // 출력 게인
+  double modulation;       // 피치 모듈레이션(legacy)
+
+  // 곡선(선택)
+  const UCRA_F0Curve* f0_curve;   // 포르타멘토/비브라토 포함
+  const UCRA_EnvCurve* env_curve;  // 에너지/람다
+
+  // 확장 플래그/키-값
+  const UCRA_KeyValue* kv; // 플래그 배열
+  size_t n_kv;
+} UCRA_NoteSegment;
+
+typedef struct {
+  int32_t sample_rate;     // 44100/48000 etc.
+  int32_t block_size;      // 0: 오프라인, >0: 스트리밍 블록 크기(프레임)
+  int32_t num_channels;    // 1 or 2 (기본 1)
+  const char* cache_dir;   // 임시파일/프리렌더 캐시
+  uint32_t seed;           // 결정성 제어
+} UCRA_RenderConfig;
+
+typedef struct {
+  // 오프라인: 메모리/파일 중 택1 제공
+  float* pcm;              // interleaved, 엔진 할당, SDK가 free 콜백 제공
+  size_t nframes;
+  const char* out_wav;     // 엔진이 파일로 저장한 경우 경로
+
+  // 진단/메타
+  const char* engine_name; // "world4utau-bridge" 등
+  const char* engine_ver;  // semver
+  const char* warnings;    // 플래그/스펙 변환 이슈
+} UCRA_RenderResult;
+
+typedef struct UCRA_Engine UCRA_Engine; // opaque
+
+// 라이프사이클
+UCRA_Engine* ucra_engine_create(const char* manifest_json_path);
+void ucra_engine_destroy(UCRA_Engine*);
+
+// 기능 질의
+int ucra_engine_getinfo(UCRA_Engine*, char* out_json, size_t cap);
+
+// 렌더(단발)
+int ucra_render(UCRA_Engine*, const UCRA_RenderConfig*,
+                const UCRA_NoteSegment* segs, size_t nsegs,
+                UCRA_RenderResult* out);
+
+// 스트리밍(콜백 Pull 모델)
+typedef size_t (*UCRA_PullPCM)(void* user, float* dst, size_t frames);
+int ucra_stream_open(UCRA_Engine*, const UCRA_RenderConfig*,
+                     const UCRA_NoteSegment* segs, size_t nsegs,
+                     void** out_stream_handle);
+int ucra_stream_read(void* stream_handle, float* dst, size_t frames);
+int ucra_stream_close(void* stream_handle);
+
+#ifdef __cplusplus
+}
+#endif
+```
+
+### 6.3 오류 코드 & 결정성
+
+* `0=OK`, `-1=GENERIC`, `-2=BAD_ARG`, `-3=UNSUPPORTED_FLAG`, `-4=VOICEBANK_IO`, `-5=LICENSE_RESTRICTED`, `-6=OUT_OF_MEMORY` …
+* 결정성: `seed`, `denormals-are-zero`, `math mode (precise/fast)` 선언
+
+### 6.4 Manifest 스키마 (resampler.json)
+
+```json
+{
+  "schema": "ucra.manifest/1",
+  "name": "straycat-rs",
+  "version": "1.0.12",
+  "vendor": "UtaUtaUtau",
+  "license": "MIT",
+  "entry": {
+    "type": "dll",                 // or "cli"/"ipc"
+    "path": "./libstraycat.so",
+    "symbol": "ucra_entry"
+  },
+  "audio": {"rates": [44100,48000], "channels": [1], "streaming": true},
+  "flags": [
+    {"key": "g", "type": "float", "desc": "formant shift (semitones)", "range": [-12,12]},
+    {"key": "B", "type": "float", "desc": "breathiness", "range": [0,1]},
+    {"key": "algo", "type": "enum", "values": ["WORLD","LLSM2","ESPER"]}
+  ],
+  "compat": {
+    "utau_cli": true,
+    "openutau_manifest": true
+  }
+}
+```
+
+### 6.5 레거시 CLI 브리지 (Drop-in)
+
+* 제공 바이너리: `resampler.exe`/`resampler`
+* 호출 예: `resampler.exe --input in.wav --output out.wav --note A4 --tempo 120 --length-ms 480 --offset-ms 12 --cons-ms 85 --cutoff-ms -200 --pre-ms 90 --ovl-ms 35 --velocity 100 --mod 0 --flags "g=0,B=0.2" --f0-curve f0.csv --vb-root PATH --oto PATH --rate 44100`
+* 기능: (1) 레거시 UTAU 인자 파싱 → UCRA 파라미터 변환, (2) 엔진 선택/호출, (3) 임시파일 관리
+
+---
+
+## 7. SDK 구성
+
+* **C SDK**: `ucra.h` + `ucra.dll/.so/.dylib` + CMake `UCRA::ucra`
+* **C++ Wrapper**: RAII/Span, `UcraEngine`, `UcraBuilder` 플루언트 API
+* **.NET**: P/Invoke + NuGet `UCRA.Native`
+* **Python**: `pyucra` (pybind11), NumPy array ↔︎ PCM/Curve 변환 유틸
+* **Rust**: `ucra-sys`(bindgen) + `ucra`(safe wrapper)
+* **툴링**: Manifest Linter, Flag Mapper, Golden Runner, ABX/MUSHRA 툴, Profile/Trace 수집기
+
+코드 스니펫 (C++):
+
+```cpp
+UcraEngine eng{"engines/straycat/manifest.json"};
+UCRA_NoteSegment seg = UcraBuilder::FromOto(alias, oto)
+  .NoteHz(440.0).Tempo(120).LenMs(480)
+  .F0Curve(f0_times, f0_vals)
+  .Flag("g","0").Flag("B","0.2").Build();
+UCRA_RenderResult out{};
+eng.Render({48000,0,1,cache,1234},{&seg,1},out);
+WriteWav("out.wav", out.pcm, out.nframes, 48000);
+```
+
+---
+
+## 8. 플래그 표준화 & 매핑
+
+* **표준 키**: `g(formant)`, `t(time-scale)`, `B(breath)`, `S(hiss)`, `P(pitch-shift semitones)`, `algo`, `noise_mix`, `period_warp`, `aperiodicity_bias` …
+* **매핑 룰**: 엔진별 플래그 명세를 Manifest에 선언하고, 브리지가 런타임 변환(범위/기본값 포함)
+* **충돌 처리**: 지원 불가 플래그는 `warnings`에 기록, 대체 파라미터 안내
+
+---
+
+## 9. 에디터 통합
+
+### 9.1 UTAU (레거시)
+
+* 드롭인 교체: `resampler.exe` 대체 가능
+* 임시 파일/UST 파싱: PitchBend(Mode2), Vibrato, Modulation을 F0Curve로 투영
+* WAVTool 연계: 세그먼트 파일 경로/메타 pass-through
+
+### 9.2 OpenUtau
+
+* **Resampler Manifest** 자동 생성기 제공(엔진→OU 스펙)
+* 스트리밍 프리뷰: 블록 렌더 API 이용
+* 캐시 재활용: hash(voicebank+segment+flags) 기반 프리렌더
+
+### 9.3 TuneLab
+
+* TLX 확장 예제 제공: 노트 이벤트→UCRA 변환→렌더링→WaveClip 삽입
+
+### 9.4 ENUNU/NNSVS/DiffSinger
+
+* Python 바인딩으로 피치/레프런스-멀티피처(phoneme dur, energy) 공급
+* 학습모델 추론 출력을 UCRA 엔진 외부 소스(원신호)로 주입 가능
+
+---
+
+## 10. 성능/실시간 요건
+
+* **프리뷰 지연**: ≤ 15ms @ 48kHz, block 256
+* **오프라인 속도**: ≥ 20x RT (싱글 스레드 기준 WORLD 참조)
+* **메모리**: 세그먼트 당 ≤ 16 MB(기본), 스트리밍 모드 링버퍼 ≤ 1 MB
+* **멀티스레드**: 노트/프레임 파티셔닝 + SIMD(AVX2/NEON) 활용
+* **GPU(옵션)**: aperiodicity/TF 변환/신경보코더 가속
+
+---
+
+## 11. 품질/검증
+
+* **객관 메트릭**: F0 RMSE, MCD(13), V/UV F1, SNR/SDR, Formant deviation
+* **주관 평가**: ABX/MUSHRA(웹/로컬 툴 제공)
+* **회귀 테스트**: 골든 보이스뱅크/UST 세트(일/영/한) + 허용 오차
+* **호환성 테스트**: 레거시 UTAU 샘플 플래그 조합 스위프
+
+---
+
+## 12. 보안/라이선스/배포
+
+* SDK: **MIT**
+* 참조 엔진: WORLD(3-Clause BSD) / LLSM2(원저작권 라이선스 준수)
+* GPL 엔진은 **프로세스 분리** 또는 Manifest로 표시(동적 링크 회피)
+* 배포 아티팩트: `sdk/`(headers, libs), `engines/`(manifests, 샘플), `tools/`(bridge, linter), `adapters/`
+
+---
+
+## 13. 로드맵 (6개월)
+
+* **M0 (2주)**: 상세 리서치/플래그 사전/Manifest v1 스키마 동결
+* **M1 (4주)**: `ucra.h`/C SDK 알파 + CLI 브리지 알파
+* **M2 (4주)**: C++/.NET/Py/Rust 바인딩, OpenUtau Manifest 제너레이터
+* **M3 (4주)**: WORLD/LLSM2 참조 엔진, 캐시/스트리밍 프리뷰
+* **M4 (4주)**: 호환 어댑터(straycat/tn\_fnds/moresampler 래핑) 베타
+* **M5 (4주)**: 테스트 킷(골든/메트릭/ABX) + 문서/샘플 1.0 RC
+* **GA**: 1.0 릴리스, 장기지원 브랜치(LTS)
+
+---
+
+## 14. 리스크 & 완화
+
+* **레거시 플래그 분기**: 매핑 충돌 → 엔진별 프로파일/권장 프리셋 제공
+* **라이선스 충돌**: GPL 엔진 혼합 → 프로세스 경계/IPC로 분리
+* **에디터별 구현 차**: 어댑터/샘플 플러그인 제공으로 가이드 강화
+* **성능 미달**: SIMD 최적화 가이드·마이크로벤치 제공, 캐시/프리렌더 전략
+
+---
+
+## 15. 개발 & 리포 구조 제안
+
+```
+ucra/                       # 모노레포
+  sdk/
+    include/ucra.h
+    cxx/ ucra.hpp
+    dotnet/ UCRA.Native.cs
+    python/ pyucra/
+    rust/ ucra-sys/
+  engines/
+    world/ manifest.json, libucra_world.*
+    llsm2/ manifest.json, libucra_llsm2.*
+  adapters/
+    bridge_cli/ resampler(.*)
+    openutau/ manifest-gen, samples/
+    tunelab/ tlx-ext/
+    legacy_wrappers/ moresampler, tn_fnds, straycat
+  tools/
+    manifest_lint/
+    flag_mapper/
+    golden_runner/
+    abx_gui/
+  tests/
+    golden_voicebanks/
+    ust_cases/
+    perf/
+  docs/
+    spec_manifest.md
+    api_ucra.md
+    guides/
+```
+
+---
+
+## 16. 구현 가이드 (엔진 개발자)
+
+1. Manifest 작성: 지원 레이트/채널/플래그/알고리즘 선언
+2. `ucra_entry` 내에서 엔진 초기화/리소스 로드
+3. `ucra_render` 구현: 세그먼트 단위 time-warp → 분석-합성 체인
+4. 스트리밍 구현 시 내부 상태 머신/프리버퍼
+5. 테스트 킷으로 골든 비교/메트릭 만족 확인
+
+샘플 의사코드:
+
+```c
+int ucra_render(...){
+  for (i: segs){
+    // 1) OTO→윈도우/타임스케일 적용
+    // 2) F0Curve resample + vibrato 합성
+    // 3) WORLD/LLSM/ESPER 합성 체인
+    // 4) 폼antt/브레스/노이즈 플래그 반영
+    // 5) PCM 누적 → 결과 반환
+  }
+}
+```
+
+---
+
+## 17. 모니터링/로그/디버깅
+
+* 구조화 로그(JSONL): 입력 파라미터 해시/Manifest 버전/플래그/렌더 시간
+* Waveform 미니맵/스펙트로그램 스냅샷(테스트 리포트 포함)
+* 크래시 덤프 & 최소 재현 케이스 자동 수집 옵션
+
+---
+
+## 18. 문서화
+
+* `docs/spec_manifest.md`: 스키마/예제
+* `docs/api_ucra.md`: C API/언어별 래퍼 사용법
+* `docs/guides/`: 에디터별 통합 가이드(UTAU/OpenUtau/TuneLab/ENUNU)
+* `docs/compat_flags.md`: 엔진별 플래그 매핑 표
+
+---
+
+## 부록 A. 리서치 요약 테이블(예시)
+
+| 프로젝트                   | 유형/언어            |            라이선스 | 비고                           |
+| ---------------------- | ---------------- | --------------: | ---------------------------- |
+| ciglet                 | DSP 유틸(C99)      |             BSD | FFT/윈도/보간 등 경량 DSP 프리미티브     |
+| libllsm / libllsm2     | 저수준 음성 분석·합성(C)  | (리포지터리 라이선스 준수) | 피치시프팅·접합·파라미터화               |
+| moresampler            | UTAU 엔진(폐소스)     |               - | 고속/저노이즈, 독자 플래그              |
+| world4utau             | WORLD 기반(C/C++)  |         GPL-3.0 | OpenUtau 호환 포팅 존재            |
+| tn\_fnds               | WORLD 파생         |         GPL-3.0 | \*nix 포팅, 변형판들 존재            |
+| straycat / straycat-rs | WORLD 기반(Rust/C) |             MIT | OpenUtau manifest 지원(신버전)    |
+| straycrab              | Rust             |             MIT | straycat 기반 변형               |
+| ESPER-Utau             | ESPER 프레임워크      |             MIT | 저노이즈·명료도 지향                  |
+| OpenUtau               | C#/Avalonia      |             MIT | resampler manifest/프리렌더/미리듣기 |
+| ENUNU                  | Python           |             MIT | NNSVS 기반 AI 엔진 래핑            |
+| TuneLab                | C#/C++(추정)       |             MIT | 멀티 엔진·TLX 확장                 |
+
+> 주: 세부 항목은 리포지터리 최신 상태에 따라 보완.
+
+---
+
+## 부록 B. 플래그 표준안(초안)
+
+* 톤/피치: `P`(semitone), `pb_depth`, `vib_rate`, `vib_depth`
+* 스펙트럼: `g`(formant), `eq_low/mid/high`, `tone_color`
+* 소스/노이즈: `B`(breath), `S`(hiss), `asp_ratio`
+* 타임스케일: `t`(time), `vel`(UTAU 호환)
+* 합성알고리즘: `algo={WORLD,LLSM2,ESPER,AI}`
+
+---
+
+## 부록 C. 테스트 세트(초안)
+
+* 보이스뱅크: JP VCV, CVVC / EN ARPASING / KO CVVC (무료 배포 가능 세트)
+* UST: 비브라토·포르타멘토·롱노트·속창·속성(브레스/프라이) 포함 20 케이스
+* 메트릭 임계: F0 RMSE ≤ 15 cent, MCD ≤ 5.0 dB, 렌더 속도 ≥ 20x RT
+
+---
+
+## 결론
+
+본 PRD는 UTAU 생태계의 단절된 resampler 인터페이스를 통일하기 위한 **UCRA** 제안을 담고 있습니다. SDK/브리지/테스트 킷을 동반 제공함으로써, 신규 엔진의 온보딩을 단순화하고, 에디터는 하나의 통합 진입점만 채택해도 다양한 엔진을 즉시 활용할 수 있습니다.
