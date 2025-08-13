@@ -14,13 +14,21 @@
 /* Platform-specific includes */
 #ifdef _WIN32
     #include <windows.h>
-    #include <winsock2.h>  /* For struct timeval */
     #include <process.h>
     typedef HANDLE pthread_t;
     typedef CRITICAL_SECTION pthread_mutex_t;
     #define PTHREAD_MUTEX_INITIALIZER {}
     #define sleep(x) Sleep((x) * 1000)
     #define usleep(x) Sleep((x) / 1000)
+
+    /* Define timeval only if not already defined */
+    #ifndef _TIMEVAL_DEFINED
+        #define _TIMEVAL_DEFINED
+        struct timeval {
+            long tv_sec;
+            long tv_usec;
+        };
+    #endif
 
     static int gettimeofday(struct timeval* tv, void* tz) {
         (void)tz;
