@@ -111,7 +111,7 @@ jobs:
       - name: Build and Install UCRA Library
         run: |
           cmake --build build --config ${{ matrix.build_type }} --parallel
-          cmake --install build --prefix ${{ github.workspace }}/ucra-install
+          cmake --install build --config ${{ matrix.build_type }} --prefix ${{ github.workspace }}/ucra-install
 
       - name: Build Simple Usage Examples
         run: |
