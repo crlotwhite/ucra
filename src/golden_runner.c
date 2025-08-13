@@ -1,7 +1,7 @@
 /**
  * @file golden_runner.c
  * @brief Golden Runner Test Harness implementation
- * 
+ *
  * This module implements a test harness that can discover, manage, and execute
  * a suite of test cases by comparing rendered output WAVs against pre-recorded
  * 'golden' WAVs to detect regressions.
@@ -113,10 +113,10 @@ static int file_exists(const char* path) {
  */
 static int ensure_directory_exists(const char* path) {
     struct stat st = {0};
-    
+
     if (stat(path, &st) == -1) {
         if (mkdir(path, 0755) == -1) {
-            fprintf(stderr, "Error: Failed to create directory '%s': %s\n", 
+            fprintf(stderr, "Error: Failed to create directory '%s': %s\n",
                     path, strerror(errno));
             return -1;
         }
@@ -126,7 +126,7 @@ static int ensure_directory_exists(const char* path) {
 
 /**
  * @brief Parse a test case configuration from a simple text format
- * 
+ *
  * Expected format:
  * test_name=test1
  * input_ust=path/to/input.ust
@@ -139,7 +139,7 @@ static int ensure_directory_exists(const char* path) {
 static int parse_test_config(const char* config_file, TestCase* test_case) {
     FILE* file = fopen(config_file, "r");
     if (!file) {
-        fprintf(stderr, "Error: Cannot open config file '%s': %s\n", 
+        fprintf(stderr, "Error: Cannot open config file '%s': %s\n",
                 config_file, strerror(errno));
         return -1;
     }
@@ -153,18 +153,18 @@ static int parse_test_config(const char* config_file, TestCase* test_case) {
         // Remove newline
         char* newline = strchr(line, '\n');
         if (newline) *newline = '\0';
-        
+
         // Skip empty lines and comments
         if (line[0] == '\0' || line[0] == '#') continue;
-        
+
         // Parse key=value pairs
         char* equals = strchr(line, '=');
         if (!equals) continue;
-        
+
         *equals = '\0';
         char* key = line;
         char* value = equals + 1;
-        
+
         if (strcmp(key, "test_name") == 0) {
             test_case->test_name = strdup(value);
         } else if (strcmp(key, "input_ust") == 0) {
@@ -206,23 +206,23 @@ static int discover_test_cases(const char* config_dir, TestSuite* suite) {
 
     // For simplicity, we'll look for .cfg files in the config directory
     // In a real implementation, this would scan the directory
-    
+
     // Create a simple test case for demonstration
     suite->cases = malloc(sizeof(TestCase));
     suite->count = 1;
-    
+
     TestCase* test = &suite->cases[0];
     memset(test, 0, sizeof(TestCase));
-    
+
     test->test_name = strdup("basic_synthesis_test");
     test->voicebank_path = strdup("tests/data");  // Use existing test data
     test->golden_wav = strdup("tests/data/golden_output.wav");
     test->output_wav = strdup("test_outputs/basic_synthesis_output.wav");
     test->tempo = 120.0;
     test->sample_rate = 44100;
-    
+
     printf("✓ Discovered %zu test case(s) in '%s'\n", suite->count, config_dir);
-    
+
     return 0;
 }
 
@@ -239,9 +239,9 @@ static int invoke_rendering_engine(const TestCase* test_case) {
     // Create a command to invoke the resampler executable
     // This is a simplified version - in practice, you'd use the actual UST input
     char command[2048];
-    
+
 #ifdef _WIN32
-    snprintf(command, sizeof(command), 
+    snprintf(command, sizeof(command),
         "resampler.exe --input \"%s\" --output \"%s\" --note \"C4,1.0,220.0\" --vb-root \"%s\" --rate %u --tempo %.1f",
         "dummy_input.wav",  // Would be actual input file
         test_case->output_wav,
@@ -249,7 +249,7 @@ static int invoke_rendering_engine(const TestCase* test_case) {
         test_case->sample_rate,
         test_case->tempo);
 #else
-    snprintf(command, sizeof(command), 
+    snprintf(command, sizeof(command),
         "./resampler --input \"%s\" --output \"%s\" --note \"C4,1.0,220.0\" --vb-root \"%s\" --rate %u --tempo %.1f",
         "dummy_input.wav",  // Would be actual input file
         test_case->output_wav,
@@ -266,7 +266,7 @@ static int invoke_rendering_engine(const TestCase* test_case) {
         fprintf(stderr, "Error: Failed to create output file '%s'\n", test_case->output_wav);
         return -1;
     }
-    
+
     // Write a minimal WAV header as placeholder
     fwrite("RIFF", 1, 4, dummy_output);
     uint32_t file_size = 36;
@@ -289,7 +289,7 @@ static int invoke_rendering_engine(const TestCase* test_case) {
     fwrite("data", 1, 4, dummy_output);
     uint32_t data_size = 0;
     fwrite(&data_size, 4, 1, dummy_output);
-    
+
     fclose(dummy_output);
 
     printf("  ✓ Rendering completed successfully\n");
@@ -333,7 +333,7 @@ static int execute_test_case(const TestCase* test_case, TestResult* result) {
 cleanup:
     clock_t end_time = clock();
     result->execution_time = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
-    
+
     return result->passed ? 0 : -1;
 }
 
@@ -356,7 +356,7 @@ static int execute_test_suite(TestSuite* suite, SuiteResults* results) {
 
     for (size_t i = 0; i < suite->count; i++) {
         printf("[%zu/%zu] ", i + 1, suite->count);
-        
+
         if (execute_test_case(&suite->cases[i], &results->results[i]) == 0) {
             results->total_passed++;
         }
@@ -372,7 +372,7 @@ static int execute_test_suite(TestSuite* suite, SuiteResults* results) {
     printf("Total tests: %zu\n", results->count);
     printf("Passed: %d\n", results->total_passed);
     printf("Failed: %d\n", (int)(results->count - results->total_passed));
-    printf("Success rate: %.1f%%\n", 
+    printf("Success rate: %.1f%%\n",
            (double)results->total_passed / results->count * 100.0);
     printf("Total execution time: %.3f seconds\n", results->total_time);
 
@@ -384,7 +384,7 @@ static int execute_test_suite(TestSuite* suite, SuiteResults* results) {
  */
 static void cleanup_test_suite(TestSuite* suite) {
     if (!suite) return;
-    
+
     for (size_t i = 0; i < suite->count; i++) {
         TestCase* test = &suite->cases[i];
         free(test->test_name);
@@ -394,7 +394,7 @@ static void cleanup_test_suite(TestSuite* suite) {
         free(test->output_wav);
         free(test->f0_curve);
     }
-    
+
     free(suite->cases);
     free(suite->suite_name);
     free(suite->output_dir);
@@ -406,13 +406,13 @@ static void cleanup_test_suite(TestSuite* suite) {
  */
 static void cleanup_suite_results(SuiteResults* results) {
     if (!results) return;
-    
+
     for (size_t i = 0; i < results->count; i++) {
         TestResult* result = &results->results[i];
         free(result->test_name);
         free(result->error_message);
     }
-    
+
     free(results->results);
     memset(results, 0, sizeof(SuiteResults));
 }

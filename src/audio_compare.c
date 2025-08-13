@@ -1,7 +1,7 @@
 /**
  * @file audio_compare.c
  * @brief Audio Comparison Module implementation
- * 
+ *
  * This module compares a rendered output WAV against a 'golden' reference WAV
  * and determines if they match using both strict bit-for-bit comparison and
  * lenient sample-based difference calculation.
@@ -141,7 +141,7 @@ static int validate_wav_header(const WAVHeader* header) {
 static int compare_files_bitwise(const char* file1, const char* file2) {
     FILE* f1 = fopen(file1, "rb");
     FILE* f2 = fopen(file2, "rb");
-    
+
     if (!f1 || !f2) {
         if (f1) fclose(f1);
         if (f2) fclose(f2);
@@ -149,13 +149,13 @@ static int compare_files_bitwise(const char* file1, const char* file2) {
     }
 
     int result = 1; // Assume files are identical
-    
+
     // Compare file sizes first
     fseek(f1, 0, SEEK_END);
     fseek(f2, 0, SEEK_END);
     long size1 = ftell(f1);
     long size2 = ftell(f2);
-    
+
     if (size1 != size2) {
         result = 0;
         goto cleanup;
@@ -194,7 +194,7 @@ static double calculate_rms_difference(const float* samples1, const float* sampl
     }
 
     double sum_squared_diff = 0.0;
-    
+
     for (size_t i = 0; i < count; i++) {
         double diff = samples1[i] - samples2[i];
         sum_squared_diff += diff * diff;
@@ -245,7 +245,7 @@ static float* read_wav_samples(const char* filename, size_t* sample_count, WAVHe
 
     *sample_count = header->data_bytes / (header->bits_per_sample / 8);
     float* samples = malloc(*sample_count * sizeof(float));
-    
+
     if (!samples) {
         fclose(file);
         return NULL;
@@ -265,7 +265,7 @@ static float* read_wav_samples(const char* filename, size_t* sample_count, WAVHe
         for (size_t i = 0; i < *sample_count; i++) {
             samples[i] = raw_samples[i] / 32768.0f;
         }
-        
+
         free(raw_samples);
     } else if (header->bits_per_sample == 32 && header->audio_format == 3) {
         // IEEE float format
@@ -306,7 +306,7 @@ static int compare_wav_samples(const char* file1, const char* file2, AudioCompar
     if (header1.sample_rate != header2.sample_rate ||
         header1.num_channels != header2.num_channels ||
         sample_count1 != sample_count2) {
-        
+
         free(samples1);
         free(samples2);
         result->error_message = strdup("WAV file formats do not match");
@@ -344,7 +344,7 @@ static int compare_wav_samples(const char* file1, const char* file2, AudioCompar
 /**
  * @brief Perform audio comparison
  */
-static int perform_audio_comparison(const char* reference_file, const char* test_file, 
+static int perform_audio_comparison(const char* reference_file, const char* test_file,
                                   AudioCompareResult* result, int strict_only, double tolerance) {
     if (!reference_file || !test_file || !result) {
         return -1;
@@ -400,7 +400,7 @@ static void print_results(const AudioCompareResult* result, int verbose) {
 
     printf("Audio Comparison Results:\n");
     printf("  Bit-for-bit identical: %s\n", result->strict_match ? "Yes" : "No");
-    
+
     if (verbose || !result->strict_match) {
         printf("  RMS difference: %.6f\n", result->rms_difference);
         printf("  Maximum difference: %.6f\n", result->max_difference);

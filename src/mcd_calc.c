@@ -1,7 +1,7 @@
 /**
  * @file mcd_calc.c
  * @brief Mel-Cepstral Distortion (MCD) Calculation Utility
- * 
+ *
  * This utility computes the MCD between a golden reference audio file and
  * a synthesized audio file using MFCC extraction and Dynamic Time Warping (DTW).
  */
@@ -94,7 +94,7 @@ static int file_exists(const char* path);
 static int load_wav_audio(const char* filename, float** samples, size_t* num_samples, int* sample_rate);
 static void init_mfcc_config(MFCCConfig* config, int sample_rate);
 static void cleanup_mfcc_config(MFCCConfig* config);
-static int extract_mfcc_features(const float* audio, size_t num_samples, 
+static int extract_mfcc_features(const float* audio, size_t num_samples,
                                 const MFCCConfig* config, MFCCFeatures* features);
 static void cleanup_mfcc_features(MFCCFeatures* features);
 static int compute_dtw(const MFCCFeatures* ref_features, const MFCCFeatures* test_features,
@@ -166,7 +166,7 @@ static int load_wav_audio(const char* filename, float** samples, size_t* num_sam
 
     *sample_rate = header.sample_rate;
     *num_samples = header.data_bytes / (header.bits_per_sample / 8);
-    
+
     *samples = malloc(*num_samples * sizeof(float));
     if (!*samples) {
         fprintf(stderr, "Error: Memory allocation failed\n");
@@ -271,13 +271,13 @@ static void compute_magnitude_spectrum(const float* frame, int frame_size, doubl
     for (int k = 0; k < fft_size / 2 + 1; k++) {
         double real_part = 0.0;
         double imag_part = 0.0;
-        
+
         for (int n = 0; n < frame_size; n++) {
             double angle = -2.0 * M_PI * k * n / fft_size;
             real_part += frame[n] * cos(angle);
             imag_part += frame[n] * sin(angle);
         }
-        
+
         magnitude_spectrum[k] = sqrt(real_part * real_part + imag_part * imag_part);
     }
 }
@@ -304,7 +304,7 @@ static void compute_mel_filterbank(const double* magnitude_spectrum, int spectru
     double nyquist = sample_rate / 2.0;
     double mel_low = hz_to_mel(0);
     double mel_high = hz_to_mel(nyquist);
-    
+
     // Create mel filter bank
     double* mel_points = malloc((config->num_mel_filters + 2) * sizeof(double));
     for (int i = 0; i < config->num_mel_filters + 2; i++) {
@@ -320,7 +320,7 @@ static void compute_mel_filterbank(const double* magnitude_spectrum, int spectru
     // Apply mel filters
     for (int i = 0; i < config->num_mel_filters; i++) {
         double filter_sum = 0.0;
-        
+
         // Lower slope
         for (int k = bin_indices[i]; k < bin_indices[i + 1]; k++) {
             if (k < spectrum_size) {
@@ -328,7 +328,7 @@ static void compute_mel_filterbank(const double* magnitude_spectrum, int spectru
                 filter_sum += magnitude_spectrum[k] * weight;
             }
         }
-        
+
         // Upper slope
         for (int k = bin_indices[i + 1]; k < bin_indices[i + 2]; k++) {
             if (k < spectrum_size) {
@@ -336,7 +336,7 @@ static void compute_mel_filterbank(const double* magnitude_spectrum, int spectru
                 filter_sum += magnitude_spectrum[k] * weight;
             }
         }
-        
+
         mel_features[i] = log(filter_sum + 1e-10); // Add small epsilon to avoid log(0)
     }
 
@@ -360,7 +360,7 @@ static void compute_dct(const double* mel_features, double* mfcc_coeffs, int num
 /**
  * @brief Extract MFCC features from audio
  */
-static int extract_mfcc_features(const float* audio, size_t num_samples, 
+static int extract_mfcc_features(const float* audio, size_t num_samples,
                                 const MFCCConfig* config, MFCCFeatures* features) {
     if (!audio || !config || !features) {
         return -1;
@@ -376,7 +376,7 @@ static int extract_mfcc_features(const float* audio, size_t num_samples,
     features->num_frames = num_frames;
     features->num_coeffs = config->num_mfcc;
     features->features = malloc(num_frames * sizeof(double*));
-    
+
     for (int i = 0; i < num_frames; i++) {
         features->features[i] = malloc(config->num_mfcc * sizeof(double));
     }
@@ -389,7 +389,7 @@ static int extract_mfcc_features(const float* audio, size_t num_samples,
 
     for (int frame_idx = 0; frame_idx < num_frames; frame_idx++) {
         int start_sample = frame_idx * config->hop_size;
-        
+
         // Copy frame
         for (int i = 0; i < config->frame_size; i++) {
             if (start_sample + i < num_samples) {
@@ -429,7 +429,7 @@ static int extract_mfcc_features(const float* audio, size_t num_samples,
  */
 static void cleanup_mfcc_features(MFCCFeatures* features) {
     if (!features) return;
-    
+
     for (int i = 0; i < features->num_frames; i++) {
         free(features->features[i]);
     }
@@ -457,17 +457,17 @@ static int compute_dtw(const MFCCFeatures* ref_features, const MFCCFeatures* tes
     }
 
     // Initialize first row and column
-    dtw_matrix[0][0] = euclidean_distance(ref_features->features[0], 
+    dtw_matrix[0][0] = euclidean_distance(ref_features->features[0],
                                          test_features->features[0], num_coeffs);
 
     for (int i = 1; i < ref_frames; i++) {
-        double dist = euclidean_distance(ref_features->features[i], 
+        double dist = euclidean_distance(ref_features->features[i],
                                         test_features->features[0], num_coeffs);
         dtw_matrix[i][0] = dtw_matrix[i-1][0] + dist;
     }
 
     for (int j = 1; j < test_frames; j++) {
-        double dist = euclidean_distance(ref_features->features[0], 
+        double dist = euclidean_distance(ref_features->features[0],
                                         test_features->features[j], num_coeffs);
         dtw_matrix[0][j] = dtw_matrix[0][j-1] + dist;
     }
@@ -475,13 +475,13 @@ static int compute_dtw(const MFCCFeatures* ref_features, const MFCCFeatures* tes
     // Fill DTW matrix
     for (int i = 1; i < ref_frames; i++) {
         for (int j = 1; j < test_frames; j++) {
-            double dist = euclidean_distance(ref_features->features[i], 
+            double dist = euclidean_distance(ref_features->features[i],
                                            test_features->features[j], num_coeffs);
-            
+
             double min_prev = dtw_matrix[i-1][j-1]; // Diagonal
             if (dtw_matrix[i-1][j] < min_prev) min_prev = dtw_matrix[i-1][j]; // Up
             if (dtw_matrix[i][j-1] < min_prev) min_prev = dtw_matrix[i][j-1]; // Left
-            
+
             dtw_matrix[i][j] = dist + min_prev;
         }
     }
@@ -542,7 +542,7 @@ static int compute_dtw(const MFCCFeatures* ref_features, const MFCCFeatures* tes
  */
 static void cleanup_dtw_result(DTWResult* result) {
     if (!result) return;
-    
+
     free(result->path_x);
     free(result->path_y);
     memset(result, 0, sizeof(DTWResult));
@@ -566,7 +566,7 @@ static double calculate_mcd(const MFCCFeatures* ref_features, const MFCCFeatures
         int test_idx = dtw_result->path_y[path_idx];
 
         double frame_distance = 0.0;
-        
+
         // Sum squared differences for coefficients 1-12 (skip c0)
         for (int c = 1; c < num_coeffs; c++) {
             double diff = ref_features->features[ref_idx][c] - test_features->features[test_idx][c];
@@ -578,7 +578,7 @@ static double calculate_mcd(const MFCCFeatures* ref_features, const MFCCFeatures
 
     // MCD formula: (10/ln(10)) * (2 / path_length) * sum_of_distances
     double mcd = (10.0 / log(10.0)) * (2.0 / dtw_result->path_length) * total_distance;
-    
+
     return mcd;
 }
 
@@ -661,7 +661,7 @@ int main(int argc, char* argv[]) {
 
     // Check sample rates match
     if (ref_sample_rate != test_sample_rate) {
-        fprintf(stderr, "Error: Sample rates do not match (%d vs %d)\n", 
+        fprintf(stderr, "Error: Sample rates do not match (%d vs %d)\n",
                 ref_sample_rate, test_sample_rate);
         free(ref_audio);
         free(test_audio);
@@ -680,7 +680,7 @@ int main(int argc, char* argv[]) {
 
     // Extract MFCC features
     MFCCFeatures ref_features, test_features;
-    
+
     if (extract_mfcc_features(ref_audio, ref_samples, &config, &ref_features) != 0) {
         fprintf(stderr, "Error: Failed to extract MFCC features from reference file\n");
         cleanup_mfcc_config(&config);

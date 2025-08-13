@@ -1,7 +1,7 @@
 /**
  * @file f0_rmse_calc.c
  * @brief F0 Root Mean Square Error (RMSE) Calculation Utility
- * 
+ *
  * This utility calculates the F0 RMSE between a ground truth F0 curve
  * and an estimated F0 curve, performing time alignment via linear interpolation.
  */
@@ -47,7 +47,7 @@ static int file_exists(const char* path);
 static int load_f0_curve(const char* filename, F0Curve* curve);
 static void cleanup_f0_curve(F0Curve* curve);
 static double interpolate_f0(const F0Curve* curve, double time);
-static int calculate_f0_rmse(const F0Curve* ground_truth, const F0Curve* estimated, 
+static int calculate_f0_rmse(const F0Curve* ground_truth, const F0Curve* estimated,
                             F0RMSEResult* result);
 static void print_usage(const char* program_name);
 static double hz_to_cents(double f0_hz, double reference_hz);
@@ -112,7 +112,7 @@ static int load_f0_curve(const char* filename, F0Curve* curve) {
 
     FILE* file = fopen(filename, "r");
     if (!file) {
-        fprintf(stderr, "Error: Cannot open F0 file '%s': %s\n", 
+        fprintf(stderr, "Error: Cannot open F0 file '%s': %s\n",
                 filename, strerror(errno));
         return -1;
     }
@@ -122,13 +122,13 @@ static int load_f0_curve(const char* filename, F0Curve* curve) {
     // First pass: count valid lines
     char line[256];
     size_t line_count = 0;
-    
+
     while (fgets(line, sizeof(line), file)) {
         // Skip comments and empty lines
         if (line[0] == '#' || line[0] == '\n' || line[0] == '\0') {
             continue;
         }
-        
+
         double time, f0;
         if (sscanf(line, "%lf %lf", &time, &f0) == 2) {
             line_count++;
@@ -144,7 +144,7 @@ static int load_f0_curve(const char* filename, F0Curve* curve) {
     // Allocate arrays
     curve->time_sec = malloc(line_count * sizeof(double));
     curve->f0_hz = malloc(line_count * sizeof(double));
-    
+
     if (!curve->time_sec || !curve->f0_hz) {
         free(curve->time_sec);
         free(curve->f0_hz);
@@ -155,12 +155,12 @@ static int load_f0_curve(const char* filename, F0Curve* curve) {
     // Second pass: read data
     rewind(file);
     curve->length = 0;
-    
+
     while (fgets(line, sizeof(line), file) && curve->length < line_count) {
         if (line[0] == '#' || line[0] == '\n' || line[0] == '\0') {
             continue;
         }
-        
+
         double time, f0;
         if (sscanf(line, "%lf %lf", &time, &f0) == 2) {
             curve->time_sec[curve->length] = time;
@@ -173,7 +173,7 @@ static int load_f0_curve(const char* filename, F0Curve* curve) {
 
     printf("Loaded F0 curve from '%s': %zu points\n", filename, curve->length);
     if (curve->length > 0) {
-        printf("  Time range: %.3f - %.3f seconds\n", 
+        printf("  Time range: %.3f - %.3f seconds\n",
                curve->time_sec[0], curve->time_sec[curve->length - 1]);
     }
 
@@ -185,7 +185,7 @@ static int load_f0_curve(const char* filename, F0Curve* curve) {
  */
 static void cleanup_f0_curve(F0Curve* curve) {
     if (!curve) return;
-    
+
     free(curve->time_sec);
     free(curve->f0_hz);
     memset(curve, 0, sizeof(F0Curve));
@@ -219,12 +219,12 @@ static double interpolate_f0(const F0Curve* curve, double time) {
 
             // Linear interpolation
             double alpha = (time - t1) / (t2 - t1);
-            
+
             // If either point is unvoiced (0), interpolate as unvoiced
             if (!is_voiced(f0_1) || !is_voiced(f0_2)) {
                 return 0.0;
             }
-            
+
             return f0_1 + alpha * (f0_2 - f0_1);
         }
     }
@@ -235,7 +235,7 @@ static double interpolate_f0(const F0Curve* curve, double time) {
 /**
  * @brief Calculate F0 RMSE between ground truth and estimated curves
  */
-static int calculate_f0_rmse(const F0Curve* ground_truth, const F0Curve* estimated, 
+static int calculate_f0_rmse(const F0Curve* ground_truth, const F0Curve* estimated,
                             F0RMSEResult* result) {
     if (!ground_truth || !estimated || !result) {
         return -1;
@@ -265,7 +265,7 @@ static int calculate_f0_rmse(const F0Curve* ground_truth, const F0Curve* estimat
 
     for (size_t i = 0; i < num_steps; i++) {
         double time = min_time + i * time_step;
-        
+
         double gt_f0 = interpolate_f0(ground_truth, time);
         double est_f0 = interpolate_f0(estimated, time);
 
@@ -276,7 +276,7 @@ static int calculate_f0_rmse(const F0Curve* ground_truth, const F0Curve* estimat
 
             sum_squared_error += error * error;
             sum_absolute_error += abs_error;
-            
+
             if (abs_error > max_error) {
                 max_error = abs_error;
             }
@@ -284,7 +284,7 @@ static int calculate_f0_rmse(const F0Curve* ground_truth, const F0Curve* estimat
             valid_points++;
             voiced_points++;
         }
-        
+
         // Count total comparison points (including unvoiced)
         if (i == 0 || is_voiced(gt_f0) || is_voiced(est_f0)) {
             // Count if it's the first point or if either curve is voiced
@@ -311,7 +311,7 @@ static int calculate_f0_rmse(const F0Curve* ground_truth, const F0Curve* estimat
     // Second pass for cents calculation
     for (size_t i = 0; i < num_steps; i++) {
         double time = min_time + i * time_step;
-        
+
         double gt_f0 = interpolate_f0(ground_truth, time);
         double est_f0 = interpolate_f0(estimated, time);
 
@@ -319,7 +319,7 @@ static int calculate_f0_rmse(const F0Curve* ground_truth, const F0Curve* estimat
             double gt_cents = hz_to_cents(gt_f0, reference_f0);
             double est_cents = hz_to_cents(est_f0, reference_f0);
             double cent_error = gt_cents - est_cents;
-            
+
             sum_squared_cent_error += cent_error * cent_error;
         }
     }
@@ -345,11 +345,11 @@ static void print_results(const F0RMSEResult* result, int verbose) {
     printf("  RMSE (cents):        %.4f\n", result->rmse_cents);
     printf("  Mean Absolute Error: %.4f Hz\n", result->mean_error_hz);
     printf("  Maximum Error:       %.4f Hz\n", result->max_error_hz);
-    printf("  Comparison Points:   %zu total, %zu voiced\n", 
+    printf("  Comparison Points:   %zu total, %zu voiced\n",
            result->num_points, result->voiced_points);
 
     if (verbose) {
-        printf("  Voiced Frame Ratio:  %.1f%%\n", 
+        printf("  Voiced Frame Ratio:  %.1f%%\n",
                (double)result->voiced_points / result->num_points * 100.0);
     }
 }
@@ -400,7 +400,7 @@ int main(int argc, char* argv[]) {
 
     // Load F0 curves
     F0Curve ground_truth, estimated;
-    
+
     if (load_f0_curve(ground_truth_file, &ground_truth) != 0) {
         return 1;
     }
