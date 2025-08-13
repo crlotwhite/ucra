@@ -1,11 +1,55 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(ucra C)
+project(ucra C CXX)
 
 # Use C99 for compatibility as requested
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+
+# Use C++11 for WORLD compatibility
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Include ExternalProject module
+include(ExternalProject)
+
+# Option to enable WORLD engine support
+option(UCRA_ENABLE_WORLD "Enable WORLD vocoder engine" ON)
+
+if(UCRA_ENABLE_WORLD)
+    # Download and build WORLD vocoder library
+    ExternalProject_Add(world
+        GIT_REPOSITORY https://github.com/mmorise/World.git
+        GIT_TAG master
+        INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/world_install
+        CMAKE_ARGS
+            -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/world_install
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            -DCMAKE_CXX_STANDARD=11
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        BUILD_BYPRODUCTS
+            ${CMAKE_CURRENT_BINARY_DIR}/world_install/lib/libworld.a
+            ${CMAKE_CURRENT_BINARY_DIR}/world_install/include/world/d4c.h
+            ${CMAKE_CURRENT_BINARY_DIR}/world_install/include/world/dio.h
+            ${CMAKE_CURRENT_BINARY_DIR}/world_install/include/world/harvest.h
+            ${CMAKE_CURRENT_BINARY_DIR}/world_install/include/world/cheaptrick.h
+            ${CMAKE_CURRENT_BINARY_DIR}/world_install/include/world/stonemask.h
+            ${CMAKE_CURRENT_BINARY_DIR}/world_install/include/world/synthesis.h
+            ${CMAKE_CURRENT_BINARY_DIR}/world_install/include/world/synthesisrealtime.h
+            ${CMAKE_CURRENT_BINARY_DIR}/world_install/include/world/constantnumbers.h
+            ${CMAKE_CURRENT_BINARY_DIR}/world_install/include/world/common.h
+    )
+
+    # Create an interface library for WORLD
+    add_library(world_lib INTERFACE)
+    add_dependencies(world_lib world)
+    target_include_directories(world_lib INTERFACE
+        ${CMAKE_CURRENT_BINARY_DIR}/world_install/include)
+    target_link_libraries(world_lib INTERFACE
+        ${CMAKE_CURRENT_BINARY_DIR}/world_install/lib/libworld.a)
+endif()
 
 # Define UCRA_STATIC globally for static library builds
 # This prevents Windows DLL import/export issues (LNK2019 errors)
@@ -25,9 +69,22 @@ target_include_directories(ucra INTERFACE
 )
 
 # Main UCRA library implementation
-add_library(ucra_impl STATIC src/ucra_manifest.c src/ucra_streaming.c)
+set(UCRA_SOURCES src/ucra_manifest.c src/ucra_streaming.c)
+
+# Add WORLD engine wrapper if enabled
+if(UCRA_ENABLE_WORLD)
+    list(APPEND UCRA_SOURCES src/ucra_world_engine.cpp)
+endif()
+
+add_library(ucra_impl STATIC ${UCRA_SOURCES})
 target_include_directories(ucra_impl PUBLIC include)
 target_link_libraries(ucra_impl cjson)
+
+# Link WORLD library if enabled
+if(UCRA_ENABLE_WORLD)
+    target_link_libraries(ucra_impl world_lib)
+    target_compile_definitions(ucra_impl PUBLIC UCRA_HAS_WORLD)
+endif()
 
 # Link pthread for streaming functionality (Unix only)
 if(NOT WIN32)
@@ -71,6 +128,18 @@ target_link_libraries(test_streaming_read ucra_impl)
 add_executable(test_streaming_integration tests/test_streaming_integration.c)
 target_link_libraries(test_streaming_integration ucra_impl)
 
+# WORLD Engine lifecycle test (only if WORLD is enabled)
+if(UCRA_ENABLE_WORLD)
+    add_executable(test_world_engine tests/test_world_engine.c)
+    target_link_libraries(test_world_engine ucra_impl)
+
+    add_executable(test_world_render tests/test_world_render.c)
+    target_link_libraries(test_world_render ucra_impl)
+
+    add_executable(test_world_comprehensive tests/test_world_comprehensive.c)
+    target_link_libraries(test_world_comprehensive ucra_impl)
+endif()
+
 # UCRA Legacy CLI Bridge (resampler.exe replacement)
 add_executable(resampler src/resampler_cli.c)
 target_link_libraries(resampler ucra_impl)
@@ -85,6 +154,13 @@ add_test(NAME streaming_lifecycle_test COMMAND test_streaming_lifecycle)
 add_test(NAME streaming_buffering_test COMMAND test_streaming_buffering)
 add_test(NAME streaming_read_test COMMAND test_streaming_read)
 add_test(NAME streaming_integration_test COMMAND test_streaming_integration)
+
+# Add WORLD engine test if enabled
+if(UCRA_ENABLE_WORLD)
+    add_test(NAME world_engine_test COMMAND test_world_engine)
+    add_test(NAME world_render_test COMMAND test_world_render)
+    add_test(NAME world_comprehensive_test COMMAND test_world_comprehensive)
+endif()
 
 # Set test working directory to tests/ to find data files
 set_tests_properties(manifest_parsing_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)

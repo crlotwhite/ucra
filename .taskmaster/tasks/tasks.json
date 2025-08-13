@@ -284,14 +284,14 @@
           3,
           4
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Set up build system and link to WORLD/LLSM2",
             "description": "Configure CMake (or chosen build system) to fetch/build WORLD (or LLSM2), set include/library paths, add options for static/dynamic linking, and verify a minimal compile/link against a dummy source.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 5
           },
@@ -300,7 +300,7 @@
             "title": "Implement ucra_engine_create/destroy/getinfo",
             "description": "Implement engine lifecycle: allocate internal state, load model/tables as needed, expose capabilities via ucra_engine_getinfo; ensure error handling and resource cleanup.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "5.1"
             ],
@@ -311,7 +311,7 @@
             "title": "Implement offline ucra_render with data mapping",
             "description": "Translate UCRA_NoteSegment/UCRA_RenderConfig into engine-specific inputs, run synthesis with WORLD/LLSM2, and return PCM + metadata in UCRA_RenderResult.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "5.2"
             ],
@@ -322,7 +322,7 @@
             "title": "Implement streaming API ucra_stream_* for wrapper",
             "description": "Wire the wrapper to support ucra_stream_open/read/close using the chosen engine, with buffering and thread-safety.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "5.3"
             ],
@@ -333,7 +333,7 @@
             "title": "Create fidelity test suite against native engine",
             "description": "Build tests that render sample inputs with the wrapper and compare against native WORLD/LLSM2 outputs (WAV diffs and objective metrics). Integrate into CI.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "5.3",
               "5.4"
@@ -688,7 +688,7 @@
     ],
     "metadata": {
       "created": "2025-08-10T12:56:02.632Z",
-      "updated": "2025-08-13T10:07:35.401Z",
+      "updated": "2025-08-13T10:46:13.330Z",
       "description": "Tasks for master context"
     }
   }
