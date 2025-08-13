@@ -7,6 +7,11 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Define UCRA_STATIC globally for static library builds
+# This prevents Windows DLL import/export issues (LNK2019 errors)
+# by ensuring UCRA_API resolves to empty instead of __declspec(dllimport)
+add_compile_definitions(UCRA_STATIC)
+
 # Add cJSON library from third-party sources
 add_library(cjson STATIC third-party/cJSON.c)
 target_include_directories(cjson PUBLIC third-party)
