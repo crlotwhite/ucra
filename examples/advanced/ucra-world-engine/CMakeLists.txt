@@ -55,11 +55,30 @@ endif()
 # This prevents Windows DLL import/export issues (LNK2019 errors)
 # by ensuring UCRA_API resolves to empty instead of __declspec(dllimport)
 add_compile_definitions(UCRA_STATIC)
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
 
-# Use parent project's cJSON library
-find_library(CJSON_LIB cjson PATHS ../../../build NO_DEFAULT_PATH)
+# Use parent project's cJSON library (search downloaded build artifacts)
+# On Windows (multi-config), libraries live in subfolders like build/Debug or build/Release.
+set(_CJSON_SEARCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../build")
+set(_CJSON_HINTS "${_CJSON_SEARCH_ROOT}" "${_CJSON_SEARCH_ROOT}/build")
+if(WIN32)
+    # Try common multi-config subfolders as suffixes
+    set(_CJSON_SUFFIXES "${CMAKE_BUILD_TYPE}" Debug Release x64/Debug x64/Release)
+    list(REMOVE_DUPLICATES _CJSON_SUFFIXES)
+    find_library(CJSON_LIB cjson
+        HINTS ${_CJSON_HINTS}
+        PATH_SUFFIXES ${_CJSON_SUFFIXES}
+        NO_DEFAULT_PATH)
+else()
+    find_library(CJSON_LIB cjson
+        HINTS ${_CJSON_HINTS}
+        NO_DEFAULT_PATH)
+endif()
 if(NOT CJSON_LIB)
-    message(FATAL_ERROR "cJSON library not found. Please build the main UCRA project first.")
+    message(FATAL_ERROR "cJSON library not found under ${_CJSON_SEARCH_ROOT}.\n"
+                        "Make sure the main build artifacts were downloaded to 'build/' ")
 endif()
 
 # Ensure cJSON headers are visible for ALL targets (tests, helpers) built in this

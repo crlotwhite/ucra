@@ -102,7 +102,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ucra-build-${{ matrix.os }}-${{ matrix.build_type }}
-          path: build/
+          path: .
 
       - name: Configure Main Project (for library install)
         run: |
