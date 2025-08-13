@@ -98,33 +98,6 @@ target_link_libraries(test_streaming_integration ucra_impl)
 add_executable(resampler src/resampler_cli.c)
 target_link_libraries(resampler ucra_impl)
 
-# ===================================================================
-# Core Testing & Validation Toolchain (Task 8)
-# ===================================================================
-
-# Golden Runner Test Harness
-add_executable(golden_runner src/golden_runner.c)
-target_link_libraries(golden_runner ucra_impl)
-
-# Audio Comparison Module
-add_executable(audio_compare src/audio_compare.c)
-target_link_libraries(audio_compare ucra_impl)
-
-# F0 RMSE Calculation Utility
-add_executable(f0_rmse_calc src/f0_rmse_calc.c)
-target_link_libraries(f0_rmse_calc ucra_impl)
-
-# MCD(13) Calculation Utility
-add_executable(mcd_calc src/mcd_calc.c)
-target_link_libraries(mcd_calc ucra_impl)
-
-# Validation Suite Integration Tool
-add_executable(validation_suite src/validation_suite.c)
-target_link_libraries(validation_suite ucra_impl)
-
-# Test WAV file generator utility
-add_executable(create_test_wav src/create_test_wav.c)
-
 include(CTest)
 enable_testing()
 
@@ -136,19 +109,9 @@ add_test(NAME streaming_buffering_test COMMAND test_streaming_buffering)
 add_test(NAME streaming_read_test COMMAND test_streaming_read)
 add_test(NAME streaming_integration_test COMMAND test_streaming_integration)
 
-# Add Core Testing & Validation Toolchain tests (Task 8)
-add_test(NAME validation_suite_test COMMAND validation_suite --test-data ${CMAKE_CURRENT_SOURCE_DIR}/tests/data --output ${CMAKE_CURRENT_BINARY_DIR}/tests/output --tools ${CMAKE_CURRENT_BINARY_DIR})
-add_test(NAME golden_runner_test COMMAND golden_runner ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/test_case_001 ${CMAKE_CURRENT_BINARY_DIR}/tests/output/test_output.wav)
-add_test(NAME audio_compare_test COMMAND audio_compare ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/golden_ref.wav ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/test_sample.wav)
-add_test(NAME f0_rmse_test COMMAND f0_rmse_calc ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/test_f0_curve.txt ${CMAKE_CURRENT_SOURCE_DIR}/tests/data/test_f0_curve.txt)
-
 # Set test working directory to tests/ to find data files
 set_tests_properties(manifest_parsing_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 set_tests_properties(comprehensive_test_suite PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-set_tests_properties(validation_suite_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-set_tests_properties(golden_runner_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-set_tests_properties(audio_compare_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-set_tests_properties(f0_rmse_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(tests)
 

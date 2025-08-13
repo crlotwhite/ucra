@@ -484,7 +484,7 @@
         "dependencies": [
           5
         ],
-        "status": "done",
+        "status": "pending",
         "subtasks": [
           {
             "id": 1,
@@ -492,7 +492,7 @@
             "description": "Develop the core framework for the 'Golden Runner' that can discover, manage, and execute a suite of test cases. This harness will be responsible for invoking the rendering engine for each test case.",
             "dependencies": [],
             "details": "The harness should read a configuration file or directory structure that defines the test suite (e.g., pairs of input UST/musicXML and a corresponding 'golden' output WAV). It will then iterate through each test case, execute the rendering engine (e.g., via the `resampler.exe` bridge from Task 3), and pass the generated output and golden WAV paths to subsequent validation modules.",
-            "status": "done",
+            "status": "pending",
             "testStrategy": "Create a mock test suite with dummy input files. Verify the harness correctly identifies all test cases and successfully calls a placeholder script representing the rendering engine, confirming that file paths are handled correctly."
           },
           {
@@ -503,7 +503,7 @@
               "8.1"
             ],
             "details": "Implement two levels of comparison: 1) A strict, bit-for-bit identity check using a cryptographic hash (e.g., SHA-256) to detect any change. 2) A more lenient sample-based difference calculation (e.g., signal-to-noise ratio or RMS difference) to allow for non-deterministic but perceptually identical outputs. The module should return a clear pass/fail status.",
-            "status": "done",
+            "status": "pending",
             "testStrategy": "Test the module with pairs of WAV files: identical files, files with minor floating-point differences, and audibly different files. Ensure the checksum fails for any non-identical pair, while the sample-based comparison passes for perceptually similar audio."
           },
           {
@@ -512,7 +512,7 @@
             "description": "Create a standalone utility to calculate the F0 Root Mean Square Error (RMSE) between a ground truth F0 curve and an estimated F0 curve.",
             "dependencies": [],
             "details": "The utility must parse F0 data from a simple text format (e.g., two columns: time in seconds, frequency in Hz). It will need to perform time alignment, likely via linear interpolation, to ensure F0 values are compared at matching time points. The final calculation must follow the standard RMSE formula as specified in section 11.",
-            "status": "done",
+            "status": "pending",
             "testStrategy": "Validate the utility using synthetic F0 data with pre-calculated, known RMSE values. Test cases should include identical curves (RMSE=0), curves with a constant offset, and curves with random noise."
           },
           {
@@ -521,7 +521,7 @@
             "description": "Develop a utility to compute the Mel-Cepstral Distortion (MCD) between a golden reference audio file and a synthesized audio file.",
             "dependencies": [],
             "details": "This utility will use a signal processing library to perform the following steps: load the two WAV files, extract the first 13 Mel-Frequency Cepstral Coefficients (MFCCs) from each, use Dynamic Time Warping (DTW) to align the two MFCC sequences, and then calculate the Euclidean distance between the aligned coefficients to get the final MCD score, as per section 11.",
-            "status": "done",
+            "status": "pending",
             "testStrategy": "Verify the implementation by comparing its output against a known, trusted MCD calculation tool using a reference dataset of audio pairs. Test with identical audio files to ensure the MCD score is zero."
           },
           {
@@ -535,7 +535,7 @@
               "8.4"
             ],
             "details": "This final subtask involves creating a main script or executable that orchestrates the entire process. It will run the test harness (Subtask 8.1), which in turn will call the audio comparison (Subtask 8.2), F0 RMSE (Subtask 8.3), and MCD (Subtask 8.4) utilities for each test case. The results should be aggregated into a single, human-readable report (e.g., console output, Markdown, or JSON file) that summarizes the pass/fail status and objective metrics for the entire suite.",
-            "status": "done",
+            "status": "pending",
             "testStrategy": "Execute the complete toolchain on a small, representative set of golden test cases. Manually verify that the final report accurately reflects the expected outcomes from each individual component for all test cases."
           }
         ]
@@ -688,7 +688,7 @@
     ],
     "metadata": {
       "created": "2025-08-10T12:56:02.632Z",
-      "updated": "2025-08-13T17:48:27.367Z",
+      "updated": "2025-08-13T10:46:13.330Z",
       "description": "Tasks for master context"
     }
   }
