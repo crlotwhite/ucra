@@ -1,0 +1,10 @@
+{
+    "chat.mcp.serverSampling": {
+        "ucra/.vscode/mcp.json: memory": {
+            "allowedModels": [
+                "copilot/gpt-4.1",
+                "copilot/claude-sonnet-4"
+            ]
+        }
+    }
+}

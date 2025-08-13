@@ -25,9 +25,13 @@ target_include_directories(ucra INTERFACE
 )
 
 # Main UCRA library implementation
-add_library(ucra_impl STATIC src/ucra_manifest.c)
+add_library(ucra_impl STATIC src/ucra_manifest.c src/ucra_streaming.c)
 target_include_directories(ucra_impl PUBLIC include)
 target_link_libraries(ucra_impl cjson)
+
+# Link pthread for streaming functionality
+find_package(Threads REQUIRED)
+target_link_libraries(ucra_impl Threads::Threads)
 
 # Update interface library to include implementation
 target_link_libraries(ucra INTERFACE ucra_impl)
@@ -44,12 +48,32 @@ target_link_libraries(test_manifest ucra_impl)
 add_executable(test_suite tests/test_suite.c)
 target_link_libraries(test_suite ucra_impl)
 
+# Streaming API lifecycle test
+add_executable(test_streaming_lifecycle tests/test_streaming_lifecycle.c)
+target_link_libraries(test_streaming_lifecycle ucra_impl)
+
+# Streaming API buffering test
+add_executable(test_streaming_buffering tests/test_streaming_buffering.c)
+target_link_libraries(test_streaming_buffering ucra_impl)
+
+# Streaming API read function test
+add_executable(test_streaming_read tests/test_streaming_read.c)
+target_link_libraries(test_streaming_read ucra_impl)
+
+# Streaming API integration test
+add_executable(test_streaming_integration tests/test_streaming_integration.c)
+target_link_libraries(test_streaming_integration ucra_impl)
+
 include(CTest)
 enable_testing()
 
 # Add comprehensive tests
 add_test(NAME manifest_parsing_test COMMAND test_manifest)
 add_test(NAME comprehensive_test_suite COMMAND test_suite)
+add_test(NAME streaming_lifecycle_test COMMAND test_streaming_lifecycle)
+add_test(NAME streaming_buffering_test COMMAND test_streaming_buffering)
+add_test(NAME streaming_read_test COMMAND test_streaming_read)
+add_test(NAME streaming_integration_test COMMAND test_streaming_integration)
 
 # Set test working directory to tests/ to find data files
 set_tests_properties(manifest_parsing_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)

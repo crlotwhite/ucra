@@ -47,6 +47,9 @@ extern "C" {
 /* Opaque engine handle */
 typedef struct UCRA_Engine_* UCRA_Handle;
 
+/* Opaque stream handle for streaming API */
+typedef struct UCRA_StreamState_* UCRA_StreamHandle;
+
 /* Result / Error codes (0 == success) */
 typedef enum UCRA_Result {
     UCRA_SUCCESS = 0,
@@ -134,6 +137,7 @@ typedef struct UCRA_NoteSegment {
 typedef struct UCRA_RenderConfig {
     uint32_t sample_rate;      /* e.g., 44100/48000 */
     uint32_t channels;         /* 1=mono, 2=stereo, ... */
+    uint32_t block_size;       /* frames per block for streaming (e.g., 256, 512) */
     uint32_t flags;            /* reserved for future use */
 
     const UCRA_NoteSegment* notes; /* pointer to array of notes */
@@ -155,6 +159,25 @@ typedef struct UCRA_RenderResult {
 
     UCRA_Result status;        /* status of the render call */
 } UCRA_RenderResult;
+
+/*
+ * Streaming API Types
+ */
+
+/* Callback function for pulling PCM data during streaming.
+ * The host application provides this callback to supply note segments
+ * and render parameters for the next audio block.
+ *
+ * Parameters:
+ *   user_data: User-provided context data
+ *   out_config: Output render configuration for the next block
+ *
+ * Returns:
+ *   UCRA_SUCCESS if the configuration was provided successfully,
+ *   or an error code if no more data is available or an error occurred.
+ */
+typedef UCRA_Result (UCRA_CALL *UCRA_PullPCM)(void* user_data,
+                                               UCRA_RenderConfig* out_config);
 
 /*
  * Core API
@@ -197,6 +220,55 @@ ucra_manifest_load(const char* manifest_path,
 /* Free a manifest and all associated memory */
 UCRA_API void UCRA_CALL
 ucra_manifest_free(UCRA_Manifest* manifest);
+
+/*
+ * Streaming API
+ */
+
+/* Initialize a new streaming session with the provided configuration and callback.
+ * The callback will be invoked when more PCM data is needed.
+ *
+ * Parameters:
+ *   out_stream: Output stream handle
+ *   config: Base render configuration (sample_rate, channels, block_size)
+ *   callback: Function to call when more data is needed
+ *   user_data: User context data passed to the callback
+ *
+ * Returns:
+ *   UCRA_SUCCESS on success, or an error code on failure
+ */
+UCRA_API UCRA_Result UCRA_CALL
+ucra_stream_open(UCRA_StreamHandle* out_stream,
+                 const UCRA_RenderConfig* config,
+                 UCRA_PullPCM callback,
+                 void* user_data);
+
+/* Read a block of PCM data from the stream.
+ * This function may block until sufficient data is available.
+ *
+ * Parameters:
+ *   stream: Stream handle
+ *   out_buffer: Buffer to write PCM data (interleaved float32)
+ *   frame_count: Number of frames to read
+ *   out_frames_read: Actual number of frames read (may be less than requested)
+ *
+ * Returns:
+ *   UCRA_SUCCESS on success, or an error code on failure
+ */
+UCRA_API UCRA_Result UCRA_CALL
+ucra_stream_read(UCRA_StreamHandle stream,
+                 float* out_buffer,
+                 uint32_t frame_count,
+                 uint32_t* out_frames_read);
+
+/* Close and cleanup a streaming session.
+ * All resources associated with the stream will be freed.
+ *
+ * Parameters:
+ *   stream: Stream handle to close
+ */
+UCRA_API void UCRA_CALL
+ucra_stream_close(UCRA_StreamHandle stream);
 
 #ifdef __cplusplus
 } /* extern "C" */
