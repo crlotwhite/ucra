@@ -62,6 +62,11 @@ if(NOT CJSON_LIB)
     message(FATAL_ERROR "cJSON library not found. Please build the main UCRA project first.")
 endif()
 
+# Ensure cJSON headers are visible for ALL targets (tests, helpers) built in this
+# standalone advanced example directory during the separate CI job. Without this
+# the test sources like tests/poc_parser.c fail to locate "cJSON.h".
+include_directories(../../../third-party)
+
 # Public header-only interface for now
 add_library(ucra INTERFACE)
 
@@ -80,6 +85,10 @@ endif()
 
 add_library(ucra_impl STATIC ${UCRA_SOURCES})
 target_include_directories(ucra_impl PUBLIC ../../../include)
+# Ensure third-party (cJSON) headers are visible when building this advanced example
+# In the separated CI job we build this directory standalone, so the top-level
+# third-party include path must be added explicitly for "cJSON.h" includes.
+target_include_directories(ucra_impl PRIVATE ../../../third-party)
 target_link_libraries(ucra_impl ${CJSON_LIB})
 
 # Link WORLD library if enabled
