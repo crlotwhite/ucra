@@ -18,6 +18,11 @@
     typedef CONDITION_VARIABLE pthread_cond_t;
     #define PTHREAD_MUTEX_INITIALIZER {}
     #define PTHREAD_COND_INITIALIZER CONDITION_VARIABLE_INIT
+
+    /* Define M_PI if not available on Windows */
+    #ifndef M_PI
+        #define M_PI 3.14159265358979323846
+    #endif
 #else
     #include <pthread.h>
 #endif
