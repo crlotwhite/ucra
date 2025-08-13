@@ -1,1 +1,3 @@
-{}
+{"type":"entity","name":"default_user","entityType":"person","observations":["Working on UCRA (Universal C Real-time Audio) project","Korean speaker based on request in Korean","Uses Windows with PowerShell","Working with C/C++ audio processing project","Has CMake-based build system set up","Workspace located at c:\\Users\\tama\\git\\ucra"]}
+{"type":"entity","name":"UCRA_project","entityType":"software_project","observations":["C/C++ audio processing library","CMake-based build system","Has examples, tests, and documentation","Uses third-party dependencies","Has streaming functionality","Currently on main branch"]}
+{"type":"relation","from":"default_user","to":"UCRA_project","relationType":"works_on"}
