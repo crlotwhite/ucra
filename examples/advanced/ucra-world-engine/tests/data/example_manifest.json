@@ -1,0 +1,49 @@
+{
+  "name": "Example UCRA Engine",
+  "version": "1.0.0",
+  "vendor": "UCRA Project",
+  "license": "MIT",
+  "entry": {
+    "type": "dll",
+    "path": "./libexample.so",
+    "symbol": "ucra_entry"
+  },
+  "audio": {
+    "rates": [44100, 48000],
+    "channels": [1, 2],
+    "streaming": true
+  },
+  "flags": [
+    {
+      "key": "g",
+      "type": "float",
+      "desc": "formant shift (semitones)",
+      "range": [-12, 12],
+      "default": 0.0
+    },
+    {
+      "key": "B",
+      "type": "float",
+      "desc": "breathiness",
+      "range": [0, 1],
+      "default": 0.0
+    },
+    {
+      "key": "algo",
+      "type": "enum",
+      "desc": "synthesis algorithm",
+      "values": ["WORLD", "LLSM2", "ESPER"],
+      "default": "WORLD"
+    },
+    {
+      "key": "debug",
+      "type": "bool",
+      "desc": "enable debug mode",
+      "default": false
+    }
+  ],
+  "compat": {
+    "utau_cli": true,
+    "openutau_manifest": true
+  }
+}

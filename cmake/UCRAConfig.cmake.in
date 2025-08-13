@@ -1,0 +1,39 @@
+@PACKAGE_INIT@
+
+# UCRA CMake Configuration File
+# This file provides find_package() support for UCRA
+
+include(CMakeFindDependencyMacro)
+
+# Find required dependencies
+if(NOT WIN32)
+    find_dependency(Threads REQUIRED)
+endif()
+
+if(UNIX)
+    # Math library is typically available as part of the system
+    include(CheckLibraryExists)
+    check_library_exists(m sin "" HAVE_LIBM)
+    if(NOT HAVE_LIBM)
+        message(FATAL_ERROR "Math library not found")
+    endif()
+endif()
+
+# Include the targets file
+include("${CMAKE_CURRENT_LIST_DIR}/UCRATargets.cmake")
+
+# Set up convenience variables
+set(UCRA_LIBRARIES UCRA::ucra)
+set(UCRA_INCLUDE_DIRS ${UCRA_ucra_INCLUDE_DIRS})
+
+# Provide information about what was found
+set(UCRA_FOUND TRUE)
+
+# Check that all required components are present
+check_required_components(UCRA)
+
+# Print useful information
+if(NOT UCRA_FIND_QUIETLY)
+    message(STATUS "Found UCRA: ${UCRA_LIBRARIES}")
+    message(STATUS "UCRA include dirs: ${UCRA_INCLUDE_DIRS}")
+endif()

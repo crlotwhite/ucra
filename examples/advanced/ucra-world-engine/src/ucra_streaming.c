@@ -9,6 +9,18 @@
 #include <errno.h>
 #include <math.h>
 
+/* Include WORLD engine functions if available */
+#ifdef UCRA_HAS_WORLD
+/* Forward declarations for WORLD engine functions */
+extern UCRA_Result ucra_engine_create(UCRA_Handle* outEngine,
+                                      const UCRA_KeyValue* options,
+                                      uint32_t option_count);
+extern void ucra_engine_destroy(UCRA_Handle engine);
+extern UCRA_Result ucra_render(UCRA_Handle engine,
+                               const UCRA_RenderConfig* config,
+                               UCRA_RenderResult* outResult);
+#endif
+
 /* Platform-specific threading includes */
 #ifdef _WIN32
     #include <windows.h>
@@ -89,6 +101,85 @@ static UCRA_Result render_audio_from_notes(UCRA_StreamState* state,
         return UCRA_SUCCESS;
     }
 
+#ifdef UCRA_HAS_WORLD
+    /* Use WORLD engine for rendering if available */
+    UCRA_Handle world_engine = NULL;
+    UCRA_Result engine_result = ucra_engine_create(&world_engine, NULL, 0);
+
+    if (engine_result == UCRA_SUCCESS && world_engine != NULL) {
+        /* Create a temporary render config for the current block */
+        UCRA_RenderConfig block_config = *render_config;
+        block_config.sample_rate = state->config.sample_rate;
+        block_config.channels = state->config.channels;
+
+        /* Calculate the time range for this block */
+        double current_time = (double)state->total_frames_generated / state->config.sample_rate;
+        double block_duration = (double)frames_to_render / state->config.sample_rate;
+
+        /* Filter notes that are active in this time range */
+        UCRA_NoteSegment* active_notes = NULL;
+        uint32_t active_note_count = 0;
+
+        /* Count active notes */
+        for (uint32_t i = 0; i < render_config->note_count; i++) {
+            const UCRA_NoteSegment* note = &render_config->notes[i];
+            if (current_time < note->start_sec + note->duration_sec &&
+                current_time + block_duration > note->start_sec) {
+                active_note_count++;
+            }
+        }
+
+        if (active_note_count > 0) {
+            /* Allocate memory for active notes */
+            active_notes = malloc(active_note_count * sizeof(UCRA_NoteSegment));
+            if (active_notes) {
+                uint32_t active_idx = 0;
+
+                /* Copy active notes and adjust timing for this block */
+                for (uint32_t i = 0; i < render_config->note_count; i++) {
+                    const UCRA_NoteSegment* note = &render_config->notes[i];
+                    if (current_time < note->start_sec + note->duration_sec &&
+                        current_time + block_duration > note->start_sec) {
+
+                        active_notes[active_idx] = *note;
+                        /* Adjust start time to be relative to current block */
+                        active_notes[active_idx].start_sec = fmax(0.0, note->start_sec - current_time);
+                        /* Adjust duration to fit within block */
+                        double note_end = note->start_sec + note->duration_sec;
+                        double block_end = current_time + block_duration;
+                        active_notes[active_idx].duration_sec = fmin(note_end, block_end) -
+                                                               fmax(note->start_sec, current_time);
+                        active_idx++;
+                    }
+                }
+
+                block_config.notes = active_notes;
+                block_config.note_count = active_note_count;
+
+                /* Render using WORLD engine */
+                UCRA_RenderResult world_result;
+                UCRA_Result render_result = ucra_render(world_engine, &block_config, &world_result);
+
+                if (render_result == UCRA_SUCCESS && world_result.pcm && world_result.frames > 0) {
+                    /* Copy rendered audio to output buffer */
+                    uint32_t frames_to_copy = (uint32_t)fmin(frames_to_render, world_result.frames);
+                    uint32_t samples_to_copy = frames_to_copy * state->config.channels;
+
+                    for (uint32_t i = 0; i < samples_to_copy; i++) {
+                        output_buffer[i] = world_result.pcm[i];
+                    }
+                }
+
+                free(active_notes);
+            }
+        }
+
+        ucra_engine_destroy(world_engine);
+        return UCRA_SUCCESS;
+    }
+#endif
+
+    /* Fallback to simple sine wave generator if WORLD is not available */
     /* Simple implementation: render each note as a sine wave and mix them */
     for (uint32_t note_idx = 0; note_idx < render_config->note_count; note_idx++) {
         const UCRA_NoteSegment* note = &render_config->notes[note_idx];
