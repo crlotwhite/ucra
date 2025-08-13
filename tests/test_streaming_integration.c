@@ -14,17 +14,13 @@
 /* Platform-specific includes */
 #ifdef _WIN32
     #include <windows.h>
+    #include <winsock2.h>  /* For struct timeval */
     #include <process.h>
     typedef HANDLE pthread_t;
     typedef CRITICAL_SECTION pthread_mutex_t;
     #define PTHREAD_MUTEX_INITIALIZER {}
     #define sleep(x) Sleep((x) * 1000)
     #define usleep(x) Sleep((x) / 1000)
-
-    struct timeval {
-        long tv_sec;
-        long tv_usec;
-    };
 
     static int gettimeofday(struct timeval* tv, void* tz) {
         (void)tz;
@@ -40,9 +36,7 @@
     #include <pthread.h>
     #include <unistd.h>
     #include <sys/time.h>
-#endif
-
-/* Configuration for the integration test */
+#endif/* Configuration for the integration test */
 #define TEST_DURATION_SEC 3
 #define AUDIO_SAMPLE_RATE 44100
 #define AUDIO_CHANNELS 2
