@@ -17,6 +17,11 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # by ensuring UCRA_API resolves to empty instead of __declspec(dllimport)
 add_compile_definitions(UCRA_STATIC)
 
+# MSVC: Treat all source files as UTF-8 to support non-ASCII literals
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 # Add cJSON library from third-party sources
 add_library(cjson STATIC third-party/cJSON.c)
 target_include_directories(cjson PUBLIC
@@ -31,6 +36,11 @@ target_include_directories(ucra INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+
+# Ensure consumers of the installed package build against the static API
+# by propagating UCRA_STATIC via the INTERFACE target. This avoids
+# __declspec(dllimport) on Windows when linking the static library.
+target_compile_definitions(ucra INTERFACE UCRA_STATIC)
 
 # Main UCRA library implementation
 set(UCRA_SOURCES src/ucra_manifest.c src/ucra_streaming.c src/ucra_world_engine.cpp)
