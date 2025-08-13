@@ -197,7 +197,7 @@
               "3.3",
               "3.4"
             ],
-            "details": "Pass the fully populated `UCRA_NoteSegment` and `UCRA_RenderConfig` structures to the main UCRA rendering API function. Handle the returned audio buffer, write it to the file specified by the `--output` argument, and perform cleanup of any temporary files. Implement error handling for API failures.",
+            "details": "Pass the fully populated `UCRA_NoteSegment` and `UCRA_RenderConfig` structures to the main UCRA rendering API function. Handle the returned audio buffer, write it to the file specified by the `--output` argument, and perform cleanup of any temporary files. Implement error handling for API failures.\n<info added on 2025-08-13T10:20:19.609Z>\nResolved Windows compatibility issue: Replaced POSIX-specific `strtok_r` with `strtok` for CLI argument parsing to fix linking errors on Windows CI. This ensures cross-platform functionality of `resampler.exe` despite `strtok`'s non-thread-safety, as CLI parsing is single-threaded.\n</info added on 2025-08-13T10:20:19.609Z>",
             "status": "done",
             "testStrategy": "Using mock `UCRA_NoteSegment` and `UCRA_RenderConfig` objects and a stubbed UCRA API, verify that the API is called with the correct parameters and that the mock output is written to the correct file path."
           }

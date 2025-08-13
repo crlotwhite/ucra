@@ -98,11 +98,10 @@ static UCRA_Result ucra_parse_note_info(const char* note_str, UCRA_CLIArgs* args
     }
 
     char* token;
-    char* saveptr;
     int token_count = 0;
 
     /* Simple parsing: space-separated values */
-    token = strtok_r(note_copy, " \t", &saveptr);
+    token = strtok(note_copy, " \t");
     while (token && token_count < 3) {
         switch (token_count) {
             case 0: /* lyric */
@@ -121,7 +120,7 @@ static UCRA_Result ucra_parse_note_info(const char* note_str, UCRA_CLIArgs* args
                 }
                 break;
         }
-        token = strtok_r(NULL, " \t", &saveptr);
+        token = strtok(NULL, " \t");
         token_count++;
     }
 
