@@ -106,6 +106,59 @@ set_tests_properties(comprehensive_test_suite PROPERTIES WORKING_DIRECTORY ${CMA
 add_subdirectory(tests)
 
 # ===================================================================
+# Examples Building and Testing
+# ===================================================================
+
+# Option to build examples (enabled by default)
+option(UCRA_BUILD_EXAMPLES "Build UCRA examples" ON)
+
+if(UCRA_BUILD_EXAMPLES)
+    # Create examples directory and add custom targets for examples
+    # Instead of using add_subdirectory directly, we'll build examples
+    # as external projects that depend on the main library
+
+    # First, we need to define a custom target that builds examples
+    # after the main library is built
+
+    # Create a function to add example executables that depend on ucra_impl
+    function(add_example_executable target_name source_file working_dir)
+        add_executable(${target_name} ${working_dir}/${source_file})
+        target_link_libraries(${target_name} ucra_impl)
+        target_include_directories(${target_name} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+        # Add as a test
+        add_test(NAME example_${target_name} COMMAND ${target_name})
+        set_tests_properties(example_${target_name} PROPERTIES
+            WORKING_DIRECTORY ${working_dir})
+    endfunction()
+
+    # Add simple-usage examples
+    add_example_executable(basic_engine basic_engine.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/simple-usage)
+    add_example_executable(manifest_usage manifest_usage.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/simple-usage)
+    add_example_executable(simple_render simple_render.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/simple-usage)
+    add_example_executable(simple_usage simple_usage.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/simple-usage)
+
+    # Add basic-rendering examples
+    add_example_executable(basic_rendering basic_rendering.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/basic-rendering)
+    add_example_executable(multi_note_render multi_note_render.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/basic-rendering)
+    add_example_executable(streaming_example streaming_example.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/basic-rendering)
+    add_example_executable(wav_output wav_output.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/basic-rendering)
+
+    message(STATUS "UCRA Examples will be built and tested")
+else()
+    message(STATUS "UCRA Examples building is disabled")
+endif()
+
+# ===================================================================
 # Installation and Packaging
 # ===================================================================
 
