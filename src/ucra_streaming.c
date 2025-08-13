@@ -6,9 +6,21 @@
 #include "ucra/ucra.h"
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 #include <errno.h>
 #include <math.h>
+
+/* Platform-specific threading includes */
+#ifdef _WIN32
+    #include <windows.h>
+    #include <process.h>
+    typedef HANDLE pthread_t;
+    typedef CRITICAL_SECTION pthread_mutex_t;
+    typedef CONDITION_VARIABLE pthread_cond_t;
+    #define PTHREAD_MUTEX_INITIALIZER {}
+    #define PTHREAD_COND_INITIALIZER CONDITION_VARIABLE_INIT
+#else
+    #include <pthread.h>
+#endif
 
 /* Internal stream state structure */
 typedef struct UCRA_StreamState {
@@ -372,3 +384,75 @@ UCRA_Result ucra_stream_read(UCRA_StreamHandle stream,
     *out_frames_read = frames_copied;
     return UCRA_SUCCESS;
 }
+
+#ifdef _WIN32
+/* Windows pthread compatibility layer */
+static int pthread_mutex_init(pthread_mutex_t* mutex, void* attr) {
+    (void)attr;
+    InitializeCriticalSection(mutex);
+    return 0;
+}
+
+static int pthread_mutex_destroy(pthread_mutex_t* mutex) {
+    DeleteCriticalSection(mutex);
+    return 0;
+}
+
+static int pthread_mutex_lock(pthread_mutex_t* mutex) {
+    EnterCriticalSection(mutex);
+    return 0;
+}
+
+static int pthread_mutex_unlock(pthread_mutex_t* mutex) {
+    LeaveCriticalSection(mutex);
+    return 0;
+}
+
+static int pthread_cond_init(pthread_cond_t* cond, void* attr) {
+    (void)attr;
+    InitializeConditionVariable(cond);
+    return 0;
+}
+
+static int pthread_cond_destroy(pthread_cond_t* cond) {
+    (void)cond; /* No cleanup needed for Windows condition variables */
+    return 0;
+}
+
+static int pthread_cond_signal(pthread_cond_t* cond) {
+    WakeConditionVariable(cond);
+    return 0;
+}
+
+static int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
+    SleepConditionVariableCS(cond, mutex, INFINITE);
+    return 0;
+}
+
+static unsigned int __stdcall thread_proc_wrapper(void* arg) {
+    void* (*start_routine)(void*) = ((void**)arg)[0];
+    void* thread_arg = ((void**)arg)[1];
+    free(arg);
+    start_routine(thread_arg);
+    return 0;
+}
+
+static int pthread_create(pthread_t* thread, void* attr, void* (*start_routine)(void*), void* arg) {
+    (void)attr;
+    void** wrapper_args = malloc(2 * sizeof(void*));
+    if (!wrapper_args) return ENOMEM;
+
+    wrapper_args[0] = (void*)start_routine;
+    wrapper_args[1] = arg;
+
+    *thread = (HANDLE)_beginthreadex(NULL, 0, thread_proc_wrapper, wrapper_args, 0, NULL);
+    return *thread ? 0 : EAGAIN;
+}
+
+static int pthread_join(pthread_t thread, void** retval) {
+    (void)retval;
+    WaitForSingleObject(thread, INFINITE);
+    CloseHandle(thread);
+    return 0;
+}
+#endif

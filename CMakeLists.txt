@@ -29,9 +29,16 @@ add_library(ucra_impl STATIC src/ucra_manifest.c src/ucra_streaming.c)
 target_include_directories(ucra_impl PUBLIC include)
 target_link_libraries(ucra_impl cjson)
 
-# Link pthread for streaming functionality
-find_package(Threads REQUIRED)
-target_link_libraries(ucra_impl Threads::Threads)
+# Link pthread for streaming functionality (Unix only)
+if(NOT WIN32)
+    find_package(Threads REQUIRED)
+    target_link_libraries(ucra_impl Threads::Threads)
+endif()
+
+# Link math library on Unix systems (required for sin, cos, pow, etc.)
+if(UNIX)
+    target_link_libraries(ucra_impl m)
+endif()
 
 # Update interface library to include implementation
 target_link_libraries(ucra INTERFACE ucra_impl)
