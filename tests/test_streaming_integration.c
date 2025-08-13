@@ -41,6 +41,29 @@
     #include <unistd.h>
     #include <sys/time.h>
 #endif/* Configuration for the integration test */
+
+/* Cross-platform atomic helpers (avoid GCC builtins on MSVC) */
+#if defined(_WIN32)
+    #ifndef _MSC_VER
+        /* If some other compiler on Windows supports GCC builtins we can still use them */
+        #define atomic_inc_u32(ptr) __sync_fetch_and_add((ptr), 1)
+        #define atomic_add_u64(ptr, val) __sync_fetch_and_add((ptr), (val))
+    #else
+        #include <windows.h>
+        #include <intrin.h>
+        static inline uint32_t atomic_inc_u32(volatile uint32_t* v) {
+            /* InterlockedIncrement returns the incremented value; emulate fetch_add returning previous */
+            return (uint32_t)InterlockedIncrement((volatile LONG*)v) - 1u;
+        }
+        static inline uint64_t atomic_add_u64(volatile uint64_t* v, uint64_t add) {
+            /* InterlockedExchangeAdd64 returns the original value (desired semantics) */
+            return (uint64_t)InterlockedExchangeAdd64((volatile LONG64*)v, (LONGLONG)add);
+        }
+    #endif
+#else
+    #define atomic_inc_u32(ptr) __sync_fetch_and_add((ptr), 1)
+    #define atomic_add_u64(ptr, val) __sync_fetch_and_add((ptr), (val))
+#endif
 #define TEST_DURATION_SEC 3
 #define AUDIO_SAMPLE_RATE 44100
 #define AUDIO_CHANNELS 2
@@ -71,7 +94,7 @@ typedef struct {
 /* Mock callback that provides test notes */
 static UCRA_Result integration_pull_pcm(void* user_data, UCRA_RenderConfig* out_config) {
     IntegrationTestContext* ctx = (IntegrationTestContext*)user_data;
-    __sync_fetch_and_add(&ctx->callback_calls, 1);
+    atomic_inc_u32(&ctx->callback_calls);
 
     /* Provide test notes */
     out_config->notes = ctx->notes;
@@ -109,8 +132,8 @@ static void* audio_thread_func(void* user_data) {
                            (read_end.tv_usec - read_start.tv_usec) / 1000.0;
 
         if (result == UCRA_SUCCESS) {
-            __sync_fetch_and_add(&ctx->total_frames_read, frames_read);
-            __sync_fetch_and_add(&ctx->read_calls, 1);
+            atomic_add_u64(&ctx->total_frames_read, frames_read);
+            atomic_inc_u32(&ctx->read_calls);
 
             /* Check for reasonable latency (should be much less than 15ms target) */
             if (latency_ms > 5.0) {
