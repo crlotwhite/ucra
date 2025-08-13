@@ -1,0 +1,176 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ucra.dev/schemas/resampler.json",
+  "title": "UCRA Resampler Manifest Schema",
+  "description": "JSON Schema for UCRA resampler.json manifest files as specified in section 6.4",
+  "type": "object",
+  "required": ["name", "version", "entry", "audio"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable engine name",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "description": "Engine version string",
+      "minLength": 1
+    },
+    "vendor": {
+      "type": "string",
+      "description": "Engine vendor/author name"
+    },
+    "license": {
+      "type": "string",
+      "description": "License identifier (e.g., MIT, GPL-3.0)"
+    },
+    "entry": {
+      "type": "object",
+      "description": "Engine entry point configuration",
+      "required": ["type", "path"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["dll", "cli", "ipc"],
+          "description": "Entry point type"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path to the engine binary/library",
+          "minLength": 1
+        },
+        "symbol": {
+          "type": "string",
+          "description": "Entry symbol name for dll type (default: ucra_entry)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "audio": {
+      "type": "object",
+      "description": "Audio capabilities",
+      "required": ["rates", "channels"],
+      "properties": {
+        "rates": {
+          "type": "array",
+          "description": "Supported sample rates",
+          "items": {
+            "type": "integer",
+            "minimum": 8000,
+            "maximum": 192000
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "channels": {
+          "type": "array",
+          "description": "Supported channel counts",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "streaming": {
+          "type": "boolean",
+          "description": "Whether engine supports streaming API",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "flags": {
+      "type": "array",
+      "description": "Engine-specific configuration flags",
+      "items": {
+        "type": "object",
+        "required": ["key", "type", "desc"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Flag key/name",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["float", "int", "bool", "string", "enum"],
+            "description": "Flag value type"
+          },
+          "desc": {
+            "type": "string",
+            "description": "Human-readable flag description",
+            "minLength": 1
+          },
+          "range": {
+            "type": "array",
+            "description": "Value range for numeric types [min, max]",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "values": {
+            "type": "array",
+            "description": "Valid values for enum type",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "default": {
+            "description": "Default value for the flag"
+          }
+        },
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "enum": ["float", "int"]
+                }
+              }
+            },
+            "then": {
+              "required": ["range"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "enum"
+                }
+              }
+            },
+            "then": {
+              "required": ["values"]
+            }
+          }
+        ]
+      }
+    },
+    "compat": {
+      "type": "object",
+      "description": "Compatibility flags",
+      "properties": {
+        "utau_cli": {
+          "type": "boolean",
+          "description": "Compatible with UTAU CLI bridge",
+          "default": false
+        },
+        "openutau_manifest": {
+          "type": "boolean",
+          "description": "Can generate OpenUtau manifest",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

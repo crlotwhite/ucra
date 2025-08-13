@@ -53,7 +53,10 @@ typedef enum UCRA_Result {
     UCRA_ERR_INVALID_ARGUMENT = 1,
     UCRA_ERR_OUT_OF_MEMORY = 2,
     UCRA_ERR_NOT_SUPPORTED = 3,
-    UCRA_ERR_INTERNAL = 4
+    UCRA_ERR_INTERNAL = 4,
+    UCRA_ERR_FILE_NOT_FOUND = 5,
+    UCRA_ERR_INVALID_JSON = 6,
+    UCRA_ERR_INVALID_MANIFEST = 7
 } UCRA_Result;
 
 /* Generic key/value pair for options and metadata */
@@ -61,6 +64,47 @@ typedef struct UCRA_KeyValue {
     const char* key;   /* UTF-8 key (null-terminated) */
     const char* value; /* UTF-8 value (null-terminated) */
 } UCRA_KeyValue;
+
+/* Manifest flag definition */
+typedef struct UCRA_ManifestFlag {
+    const char* key;         /* Flag key/name */
+    const char* type;        /* Flag type: "float", "int", "bool", "string", "enum" */
+    const char* desc;        /* Human-readable description */
+    const char* default_val; /* Default value as string */
+    const float* range;      /* Range for numeric types [min, max], NULL if not applicable */
+    const char** values;     /* Valid values for enum type, NULL if not applicable */
+    uint32_t values_count;   /* Number of values in the values array */
+} UCRA_ManifestFlag;
+
+/* Manifest entry point configuration */
+typedef struct UCRA_ManifestEntry {
+    const char* type;   /* Entry type: "dll", "cli", "ipc" */
+    const char* path;   /* Path to engine binary/library */
+    const char* symbol; /* Entry symbol name (for dll type) */
+} UCRA_ManifestEntry;
+
+/* Manifest audio capabilities */
+typedef struct UCRA_ManifestAudio {
+    const uint32_t* rates;     /* Supported sample rates */
+    uint32_t rates_count;      /* Number of supported rates */
+    const uint32_t* channels;  /* Supported channel counts */
+    uint32_t channels_count;   /* Number of supported channel counts */
+    int streaming;             /* Whether streaming is supported */
+} UCRA_ManifestAudio;
+
+/* Engine manifest data */
+typedef struct UCRA_Manifest {
+    const char* name;               /* Engine name */
+    const char* version;            /* Engine version */
+    const char* vendor;             /* Engine vendor/author */
+    const char* license;            /* License identifier */
+
+    UCRA_ManifestEntry entry;       /* Entry point configuration */
+    UCRA_ManifestAudio audio;       /* Audio capabilities */
+
+    const UCRA_ManifestFlag* flags; /* Engine flags array */
+    uint32_t flags_count;           /* Number of flags */
+} UCRA_Manifest;
 
 /* Fundamental curves */
 typedef struct UCRA_F0Curve {
@@ -141,6 +185,18 @@ UCRA_API UCRA_Result UCRA_CALL
 ucra_render(UCRA_Handle engine,
             const UCRA_RenderConfig* config,
             UCRA_RenderResult* outResult);
+
+/*
+ * Manifest Parsing API
+ */
+/* Load and parse a manifest file from the given path */
+UCRA_API UCRA_Result UCRA_CALL
+ucra_manifest_load(const char* manifest_path,
+                   UCRA_Manifest** outManifest);
+
+/* Free a manifest and all associated memory */
+UCRA_API void UCRA_CALL
+ucra_manifest_free(UCRA_Manifest* manifest);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -26,3 +26,6 @@ node_modules/
 # Build directories
 build/
 build-*/
+
+# Third-party dependencies
+third-party/cJSON/

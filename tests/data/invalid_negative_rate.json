@@ -1,0 +1,12 @@
+{
+  "name": "Test Engine",
+  "version": "1.0.0",
+  "entry": {
+    "type": "dll",
+    "path": "./lib.so"
+  },
+  "audio": {
+    "rates": [-1, 44100],
+    "channels": [1]
+  }
+}
