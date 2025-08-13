@@ -20,12 +20,12 @@
     #define PTHREAD_MUTEX_INITIALIZER {}
     #define sleep(x) Sleep((x) * 1000)
     #define usleep(x) Sleep((x) / 1000)
-    
+
     struct timeval {
         long tv_sec;
         long tv_usec;
     };
-    
+
     static int gettimeofday(struct timeval* tv, void* tz) {
         (void)tz;
         FILETIME ft;
@@ -394,10 +394,10 @@ static int pthread_create(pthread_t* thread, void* attr, void* (*start_routine)(
     (void)attr;
     void** wrapper_args = malloc(2 * sizeof(void*));
     if (!wrapper_args) return 12; /* ENOMEM */
-    
+
     wrapper_args[0] = (void*)start_routine;
     wrapper_args[1] = arg;
-    
+
     *thread = (HANDLE)_beginthreadex(NULL, 0, thread_proc_wrapper, wrapper_args, 0, NULL);
     return *thread ? 0 : 11; /* EAGAIN */
 }
