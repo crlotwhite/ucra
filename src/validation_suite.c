@@ -1,7 +1,7 @@
 /**
  * @file validation_suite.c
  * @brief UCRA Core Testing & Validation Toolchain Integration
- *
+ * 
  * This tool integrates all validation utilities (Golden Runner, Audio Compare,
  * F0 RMSE, MCD Calc) into a comprehensive test suite with automated reporting.
  */
@@ -78,7 +78,6 @@ static void print_test_results(const ValidationSuite* suite, const ValidationCon
 static void generate_html_report(const ValidationSuite* suite, const ValidationConfig* config);
 static void cleanup_validation_suite(ValidationSuite* suite);
 static double get_current_time(void);
-static void build_tool_path(char* dest, size_t dest_size, const char* tools_dir, const char* tool_name);
 
 /**
  * @brief Print usage information
@@ -123,44 +122,13 @@ static double get_current_time(void) {
 }
 
 /**
- * @brief Build a normalized tool path
- */
-static void build_tool_path(char* dest, size_t dest_size, const char* tools_dir, const char* tool_name) {
-    char normalized_tools_dir[1024];
-    char absolute_path[2048];
-
-    // Convert to absolute path if needed
-    if (tools_dir[0] != '/' && !(tools_dir[1] == ':' && tools_dir[0] >= 'A' && tools_dir[0] <= 'Z')) {
-        // Relative path - convert to absolute
-#ifdef _WIN32
-        GetFullPathNameA(tools_dir, sizeof(absolute_path), absolute_path, NULL);
-#else
-        realpath(tools_dir, absolute_path);
-#endif
-        strncpy(normalized_tools_dir, absolute_path, sizeof(normalized_tools_dir) - 1);
-    } else {
-        // Already absolute path
-        strncpy(normalized_tools_dir, tools_dir, sizeof(normalized_tools_dir) - 1);
-    }
-    normalized_tools_dir[sizeof(normalized_tools_dir) - 1] = '\0';
-
-    // Ensure tools_dir ends with PATH_SEPARATOR
-    size_t len = strlen(normalized_tools_dir);
-    if (len > 0 && normalized_tools_dir[len - 1] != PATH_SEPARATOR[0]) {
-        strncat(normalized_tools_dir, PATH_SEPARATOR, sizeof(normalized_tools_dir) - len - 1);
-    }
-
-    snprintf(dest, dest_size, "%s%s%s", normalized_tools_dir, tool_name, EXECUTABLE_EXTENSION);
-}
-
-/**
  * @brief Parse command line arguments
  */
 static int parse_arguments(int argc, char* argv[], ValidationConfig* config) {
     // Set defaults
     strcpy(config->test_data_dir, "tests/data");
     strcpy(config->output_dir, "tests/output");
-    strcpy(config->tools_dir, "build/Release");
+    strcpy(config->tools_dir, "build");
     config->snr_threshold = 30.0;
     config->f0_rmse_threshold = 50.0;
     config->mcd_threshold = 6.0;
@@ -222,22 +190,11 @@ static int validate_configuration(const ValidationConfig* config) {
     };
 
     for (int i = 0; i < 4; i++) {
-        // Normalize path separator and construct tool path
-        char normalized_tools_dir[1024];
-        strncpy(normalized_tools_dir, config->tools_dir, sizeof(normalized_tools_dir) - 1);
-        normalized_tools_dir[sizeof(normalized_tools_dir) - 1] = '\0';
-
-        // Ensure tools_dir ends with PATH_SEPARATOR
-        size_t len = strlen(normalized_tools_dir);
-        if (len > 0 && normalized_tools_dir[len - 1] != PATH_SEPARATOR[0]) {
-            strncat(normalized_tools_dir, PATH_SEPARATOR, sizeof(normalized_tools_dir) - len - 1);
-        }
-
-        snprintf(tool_path, sizeof(tool_path), "%s%s",
-                normalized_tools_dir, required_tools[i]);
-
+        snprintf(tool_path, sizeof(tool_path), "%s%s%s", 
+                config->tools_dir, PATH_SEPARATOR, required_tools[i]);
+        
         if (access(tool_path, F_OK) != 0) {
-            fprintf(stderr, "Error: Required tool '%s' not found at '%s'\n",
+            fprintf(stderr, "Error: Required tool '%s' not found at '%s'\n", 
                     required_tools[i], tool_path);
             return 1;
         }
@@ -255,12 +212,9 @@ static int execute_command(const char* command, char* output_buffer, size_t buff
     }
 
     FILE* pipe = NULL;
-    char full_command[4096];
-
+    
 #ifdef _WIN32
-    // Use cmd /c on Windows to properly handle paths
-    snprintf(full_command, sizeof(full_command), "cmd /c \"%s\"", command);
-    pipe = _popen(full_command, "r");
+    pipe = _popen(command, "r");
 #else
     pipe = popen(command, "r");
 #endif
@@ -272,7 +226,7 @@ static int execute_command(const char* command, char* output_buffer, size_t buff
 
     // Read output
     size_t bytes_read = 0;
-    while (bytes_read < buffer_size - 1 && fgets(output_buffer + bytes_read,
+    while (bytes_read < buffer_size - 1 && fgets(output_buffer + bytes_read, 
            buffer_size - bytes_read, pipe) != NULL) {
         bytes_read = strlen(output_buffer);
     }
@@ -327,11 +281,11 @@ static int run_single_test(const char* test_name, const ValidationConfig* config
     result->error_message[0] = '\0';
 
     // Construct file paths
-    snprintf(test_dir, sizeof(test_dir), "%s%s%s",
+    snprintf(test_dir, sizeof(test_dir), "%s%s%s", 
              config->test_data_dir, PATH_SEPARATOR, test_name);
     snprintf(input_file, sizeof(input_file), "%s%sinput.wav", test_dir, PATH_SEPARATOR);
     snprintf(golden_file, sizeof(golden_file), "%s%sgolden.wav", test_dir, PATH_SEPARATOR);
-    snprintf(output_file, sizeof(output_file), "%s%s%s_output.wav",
+    snprintf(output_file, sizeof(output_file), "%s%s%s_output.wav", 
              config->output_dir, PATH_SEPARATOR, test_name);
     snprintf(f0_file, sizeof(f0_file), "%s%sf0_curve.txt", test_dir, PATH_SEPARATOR);
 
@@ -342,95 +296,47 @@ static int run_single_test(const char* test_name, const ValidationConfig* config
         printf("  Output: %s\n", output_file);
     }
 
-    // 1. Run Golden Runner (simplified - copy input as output for testing)
-    char tool_path[512];
-    char output_dir_path[512];
-    build_tool_path(tool_path, sizeof(tool_path), config->tools_dir, "golden_runner");
-
-    // Extract directory from output_file for golden_runner
-    strncpy(output_dir_path, config->output_dir, sizeof(output_dir_path) - 1);
-    output_dir_path[sizeof(output_dir_path) - 1] = '\0';
-
-    snprintf(command, sizeof(command), "\"%s\" --config-dir \"%s\" --output-dir \"%s\"",
-             tool_path, test_dir, output_dir_path);
-
-    if (config->verbose) {
-        printf("  Golden Runner Command: %s\n", command);
-    }
-
+    // 1. Run Golden Runner
+    snprintf(command, sizeof(command), "%s%sgolden_runner%s %s %s", 
+             config->tools_dir, PATH_SEPARATOR, EXECUTABLE_EXTENSION, test_dir, output_file);
+    
     result->golden_runner_result = execute_command(command, output_buffer, sizeof(output_buffer));
-
+    
     if (result->golden_runner_result != 0) {
-        snprintf(result->error_message, sizeof(result->error_message),
+        snprintf(result->error_message, sizeof(result->error_message), 
                 "Golden runner failed with exit code %d", result->golden_runner_result);
         return 1;
     }
 
-    // For testing purposes, copy the input file as the output
-    // In a real scenario, golden_runner would generate proper output
-#ifdef _WIN32
-    char copy_cmd[2048];
-    snprintf(copy_cmd, sizeof(copy_cmd), "copy \"%s\" \"%s\"", input_file, output_file);
-    system(copy_cmd);
-#else
-    char copy_cmd[2048];
-    snprintf(copy_cmd, sizeof(copy_cmd), "cp \"%s\" \"%s\"", input_file, output_file);
-    system(copy_cmd);
-#endif
-
-    if (config->verbose) {
-        printf("  Created test output: %s\n", output_file);
-    }
-
     // 2. Audio Comparison
-    build_tool_path(tool_path, sizeof(tool_path), config->tools_dir, "audio_compare");
-    snprintf(command, sizeof(command), "\"%s\" \"%s\" \"%s\" --verbose", tool_path, golden_file, output_file);
-
+    snprintf(command, sizeof(command), "%s%saudio_compare%s %s %s --verbose", 
+             config->tools_dir, PATH_SEPARATOR, EXECUTABLE_EXTENSION, golden_file, output_file);
+    
     if (execute_command(command, output_buffer, sizeof(output_buffer)) == 0) {
-        if (config->verbose) {
-            printf("  Audio compare output: %s\n", output_buffer);
-        }
-        result->audio_snr = parse_numeric_output(output_buffer, "Signal-to-noise ratio:");
-        result->audio_rms_diff = parse_numeric_output(output_buffer, "RMS difference:");
+        result->audio_snr = parse_numeric_output(output_buffer, "SNR:");
+        result->audio_rms_diff = parse_numeric_output(output_buffer, "RMS Difference:");
     }
 
     // 3. F0 RMSE Calculation (if F0 file exists)
     if (access(f0_file, F_OK) == 0) {
-        // Generate F0 curve from output (simplified - copy reference F0 file for testing)
+        // Generate F0 curve from output (simplified - would need actual F0 extraction)
         char output_f0_file[1024];
-        snprintf(output_f0_file, sizeof(output_f0_file), "%s%s%s_f0.txt",
+        snprintf(output_f0_file, sizeof(output_f0_file), "%s%s%s_f0.txt", 
                  config->output_dir, PATH_SEPARATOR, test_name);
-
-        // Copy the reference F0 file for testing purposes
-#ifdef _WIN32
-        char copy_cmd[2048];
-        snprintf(copy_cmd, sizeof(copy_cmd), "copy \"%s\" \"%s\"", f0_file, output_f0_file);
-        system(copy_cmd);
-#else
-        char copy_cmd[2048];
-        snprintf(copy_cmd, sizeof(copy_cmd), "cp \"%s\" \"%s\"", f0_file, output_f0_file);
-        system(copy_cmd);
-#endif
-
-        build_tool_path(tool_path, sizeof(tool_path), config->tools_dir, "f0_rmse_calc");
-        snprintf(command, sizeof(command), "\"%s\" \"%s\" \"%s\" --verbose", tool_path, f0_file, output_f0_file);
-
+        
+        snprintf(command, sizeof(command), "%s%sf0_rmse_calc%s %s %s --verbose", 
+                 config->tools_dir, PATH_SEPARATOR, EXECUTABLE_EXTENSION, f0_file, output_f0_file);
+        
         if (execute_command(command, output_buffer, sizeof(output_buffer)) == 0) {
-            if (config->verbose) {
-                printf("  F0 RMSE output: %s\n", output_buffer);
-            }
-            result->f0_rmse = parse_numeric_output(output_buffer, "RMSE (Hz):");
+            result->f0_rmse = parse_numeric_output(output_buffer, "F0 RMSE:");
         }
     }
 
     // 4. MCD(13) Calculation
-    build_tool_path(tool_path, sizeof(tool_path), config->tools_dir, "mcd_calc");
-    snprintf(command, sizeof(command), "\"%s\" \"%s\" \"%s\" --verbose", tool_path, golden_file, output_file);
-
+    snprintf(command, sizeof(command), "%s%smcd_calc%s %s %s --verbose", 
+             config->tools_dir, PATH_SEPARATOR, EXECUTABLE_EXTENSION, golden_file, output_file);
+    
     if (execute_command(command, output_buffer, sizeof(output_buffer)) == 0) {
-        if (config->verbose) {
-            printf("  MCD output: %s\n", output_buffer);
-        }
         result->mcd_score = parse_numeric_output(output_buffer, "MCD Score:");
     }
 
@@ -442,13 +348,13 @@ static int run_single_test(const char* test_name, const ValidationConfig* config
     result->test_passed = audio_pass && f0_pass && mcd_pass;
 
     if (!result->test_passed && result->error_message[0] == '\0') {
-        snprintf(result->error_message, sizeof(result->error_message),
-                "Quality thresholds not met (SNR: %.2f, F0 RMSE: %.2f, MCD: %.2f)",
+        snprintf(result->error_message, sizeof(result->error_message), 
+                "Quality thresholds not met (SNR: %.2f, F0 RMSE: %.2f, MCD: %.2f)", 
                 result->audio_snr, result->f0_rmse, result->mcd_score);
     }
 
     if (config->verbose) {
-        printf("  Results: SNR=%.2f, F0_RMSE=%.2f, MCD=%.2f [%s]\n",
+        printf("  Results: SNR=%.2f, F0_RMSE=%.2f, MCD=%.2f [%s]\n", 
                result->audio_snr, result->f0_rmse, result->mcd_score,
                result->test_passed ? "PASS" : "FAIL");
     }
@@ -472,7 +378,7 @@ static int run_validation_suite(const ValidationConfig* config, ValidationSuite*
     // Discover test cases (simplified - scan for subdirectories)
     const char* test_cases[] = {
         "test_case_001",
-        "test_case_002",
+        "test_case_002", 
         "basic_synthesis",
         "multi_note_test"
     };
@@ -494,7 +400,7 @@ static int run_validation_suite(const ValidationConfig* config, ValidationSuite*
     // Run each test case
     for (int i = 0; i < num_test_cases; i++) {
         char test_dir[1024];
-        snprintf(test_dir, sizeof(test_dir), "%s%s%s",
+        snprintf(test_dir, sizeof(test_dir), "%s%s%s", 
                 config->test_data_dir, PATH_SEPARATOR, test_cases[i]);
 
         // Check if test case directory exists
@@ -506,7 +412,7 @@ static int run_validation_suite(const ValidationConfig* config, ValidationSuite*
         }
 
         int test_result = run_single_test(test_cases[i], config, &suite->results[i]);
-
+        
         if (test_result == 0) {
             suite->tests_passed++;
             printf("[PASS] %s\n", test_cases[i]);
@@ -530,7 +436,7 @@ static void print_test_results(const ValidationSuite* suite, const ValidationCon
     printf("Total tests:   %d\n", suite->num_tests);
     printf("Passed:        %d\n", suite->tests_passed);
     printf("Failed:        %d\n", suite->tests_failed);
-    printf("Success rate:  %.1f%%\n",
+    printf("Success rate:  %.1f%%\n", 
            (double)suite->tests_passed / suite->num_tests * 100.0);
     printf("Duration:      %.2f seconds\n", suite->end_time - suite->start_time);
 
@@ -554,7 +460,7 @@ static void print_test_results(const ValidationSuite* suite, const ValidationCon
  */
 static void generate_html_report(const ValidationSuite* suite, const ValidationConfig* config) {
     char report_path[1024];
-    snprintf(report_path, sizeof(report_path), "%s%svalidation_report.html",
+    snprintf(report_path, sizeof(report_path), "%s%svalidation_report.html", 
              config->output_dir, PATH_SEPARATOR);
 
     FILE* report = fopen(report_path, "w");
@@ -569,17 +475,17 @@ static void generate_html_report(const ValidationSuite* suite, const ValidationC
     fprintf(report, "<h2>Summary</h2>\n");
     fprintf(report, "<ul><li>Total: %d</li><li>Passed: %d</li><li>Failed: %d</li></ul>\n",
             suite->num_tests, suite->tests_passed, suite->tests_failed);
-
+    
     fprintf(report, "<h2>Test Results</h2>\n<table border='1'>\n");
     fprintf(report, "<tr><th>Test</th><th>Status</th><th>SNR</th><th>F0 RMSE</th><th>MCD</th></tr>\n");
-
+    
     for (int i = 0; i < suite->num_tests; i++) {
         const ValidationResult* r = &suite->results[i];
         fprintf(report, "<tr><td>%s</td><td>%s</td><td>%.2f</td><td>%.2f</td><td>%.2f</td></tr>\n",
-                r->test_name, r->test_passed ? "PASS" : "FAIL",
+                r->test_name, r->test_passed ? "PASS" : "FAIL", 
                 r->audio_snr, r->f0_rmse, r->mcd_score);
     }
-
+    
     fprintf(report, "</table></body></html>\n");
     fclose(report);
 
