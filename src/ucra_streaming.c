@@ -429,6 +429,11 @@ static int pthread_cond_signal(pthread_cond_t* cond) {
     return 0;
 }
 
+static int pthread_cond_broadcast(pthread_cond_t* cond) {
+    WakeAllConditionVariable(cond);
+    return 0;
+}
+
 static int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex) {
     SleepConditionVariableCS(cond, mutex, INFINITE);
     return 0;

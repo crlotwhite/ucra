@@ -9,10 +9,38 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
-#include <pthread.h>
-#include <unistd.h>
 #include <time.h>
-#include <sys/time.h>
+
+/* Platform-specific includes */
+#ifdef _WIN32
+    #include <windows.h>
+    #include <process.h>
+    typedef HANDLE pthread_t;
+    typedef CRITICAL_SECTION pthread_mutex_t;
+    #define PTHREAD_MUTEX_INITIALIZER {}
+    #define sleep(x) Sleep((x) * 1000)
+    #define usleep(x) Sleep((x) / 1000)
+    
+    struct timeval {
+        long tv_sec;
+        long tv_usec;
+    };
+    
+    static int gettimeofday(struct timeval* tv, void* tz) {
+        (void)tz;
+        FILETIME ft;
+        GetSystemTimeAsFileTime(&ft);
+        uint64_t time = ((uint64_t)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
+        time = (time - 116444736000000000ULL) / 10; /* Convert to microseconds since epoch */
+        tv->tv_sec = (long)(time / 1000000);
+        tv->tv_usec = (long)(time % 1000000);
+        return 0;
+    }
+#else
+    #include <pthread.h>
+    #include <unistd.h>
+    #include <sys/time.h>
+#endif
 
 /* Configuration for the integration test */
 #define TEST_DURATION_SEC 3
@@ -330,3 +358,54 @@ int main() {
 
     return 0;
 }
+
+#ifdef _WIN32
+/* Windows pthread compatibility layer for tests */
+static int pthread_mutex_init(pthread_mutex_t* mutex, void* attr) {
+    (void)attr;
+    InitializeCriticalSection(mutex);
+    return 0;
+}
+
+static int pthread_mutex_destroy(pthread_mutex_t* mutex) {
+    DeleteCriticalSection(mutex);
+    return 0;
+}
+
+static int pthread_mutex_lock(pthread_mutex_t* mutex) {
+    EnterCriticalSection(mutex);
+    return 0;
+}
+
+static int pthread_mutex_unlock(pthread_mutex_t* mutex) {
+    LeaveCriticalSection(mutex);
+    return 0;
+}
+
+static unsigned int __stdcall thread_proc_wrapper(void* arg) {
+    void* (*start_routine)(void*) = ((void**)arg)[0];
+    void* thread_arg = ((void**)arg)[1];
+    free(arg);
+    start_routine(thread_arg);
+    return 0;
+}
+
+static int pthread_create(pthread_t* thread, void* attr, void* (*start_routine)(void*), void* arg) {
+    (void)attr;
+    void** wrapper_args = malloc(2 * sizeof(void*));
+    if (!wrapper_args) return 12; /* ENOMEM */
+    
+    wrapper_args[0] = (void*)start_routine;
+    wrapper_args[1] = arg;
+    
+    *thread = (HANDLE)_beginthreadex(NULL, 0, thread_proc_wrapper, wrapper_args, 0, NULL);
+    return *thread ? 0 : 11; /* EAGAIN */
+}
+
+static int pthread_join(pthread_t thread, void** retval) {
+    (void)retval;
+    WaitForSingleObject(thread, INFINITE);
+    CloseHandle(thread);
+    return 0;
+}
+#endif
