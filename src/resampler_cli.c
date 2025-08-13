@@ -7,12 +7,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <getopt.h>
 #include <math.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+/* Cross-platform argument parsing (Windows compatible) */
+static int ucra_find_arg(int argc, char* argv[], const char* short_opt, const char* long_opt, char** value) {
+    *value = NULL;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], short_opt) == 0 || strcmp(argv[i], long_opt) == 0) {
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                *value = argv[i + 1];
+                return i;
+            } else {
+                return i; /* Found flag but no value */
+            }
+        }
+    }
+    return 0; /* Not found */
+}
+
+static int ucra_has_flag(int argc, char* argv[], const char* short_opt, const char* long_opt) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], short_opt) == 0 || strcmp(argv[i], long_opt) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
 
 /* CLI argument structure */
 typedef struct UCRA_CLIArgs {
@@ -130,73 +155,61 @@ static void ucra_print_usage(const char* program_name) {
     printf("  %s -i input.wav -o output.wav -n \"a 60 100\" -v /path/to/voicebank\n", program_name);
 }
 
-/* Parse command line arguments using getopt */
+/* Parse command line arguments using cross-platform approach */
 static UCRA_Result ucra_parse_cli_args(int argc, char* argv[], UCRA_CLIArgs* args) {
     if (!args) {
         return UCRA_ERR_INVALID_ARGUMENT;
     }
 
-    static struct option long_options[] = {
-        {"input",    required_argument, 0, 'i'},
-        {"output",   required_argument, 0, 'o'},
-        {"note",     required_argument, 0, 'n'},
-        {"tempo",    required_argument, 0, 't'},
-        {"flags",    required_argument, 0, 'f'},
-        {"f0-curve", required_argument, 0, 'c'},
-        {"vb-root",  required_argument, 0, 'v'},
-        {"oto",      required_argument, 0, 'O'},
-        {"rate",     required_argument, 0, 'r'},
-        {"help",     no_argument,       0, 'h'},
-        {0, 0, 0, 0}
-    };
+    /* Check for help first */
+    if (ucra_has_flag(argc, argv, "-h", "--help")) {
+        ucra_print_usage(argv[0]);
+        return UCRA_ERR_INVALID_ARGUMENT; /* Use as "help requested" signal */
+    }
 
-    int opt;
-    int option_index = 0;
+    char* value;
 
-    while ((opt = getopt_long(argc, argv, "i:o:n:t:f:c:v:O:r:h", long_options, &option_index)) != -1) {
-        switch (opt) {
-            case 'i':
-                args->input_wav = strdup(optarg);
-                break;
-            case 'o':
-                args->output_wav = strdup(optarg);
-                break;
-            case 'n':
-                args->note_info = strdup(optarg);
-                break;
-            case 't':
-                args->tempo = atof(optarg);
-                if (args->tempo <= 0.0) {
-                    args->tempo = 120.0;
-                }
-                break;
-            case 'f':
-                args->flags_str = strdup(optarg);
-                break;
-            case 'c':
-                args->f0_curve_file = strdup(optarg);
-                break;
-            case 'v':
-                args->vb_root = strdup(optarg);
-                break;
-            case 'O':
-                args->oto_file = strdup(optarg);
-                break;
-            case 'r':
-                args->sample_rate = (uint32_t)atoi(optarg);
-                if (args->sample_rate < 8000 || args->sample_rate > 192000) {
-                    args->sample_rate = 44100;
-                }
-                break;
-            case 'h':
-                ucra_print_usage(argv[0]);
-                return UCRA_ERR_INVALID_ARGUMENT; /* Use as "help requested" signal */
-            case '?':
-                fprintf(stderr, "Error: Unknown option or missing argument\n");
-                ucra_print_usage(argv[0]);
-                return UCRA_ERR_INVALID_ARGUMENT;
-            default:
-                return UCRA_ERR_INVALID_ARGUMENT;
+    /* Parse required arguments */
+    if (ucra_find_arg(argc, argv, "-i", "--input", &value) && value) {
+        args->input_wav = strdup(value);
+    }
+
+    if (ucra_find_arg(argc, argv, "-o", "--output", &value) && value) {
+        args->output_wav = strdup(value);
+    }
+
+    if (ucra_find_arg(argc, argv, "-n", "--note", &value) && value) {
+        args->note_info = strdup(value);
+    }
+
+    if (ucra_find_arg(argc, argv, "-v", "--vb-root", &value) && value) {
+        args->vb_root = strdup(value);
+    }
+
+    /* Parse optional arguments */
+    if (ucra_find_arg(argc, argv, "-t", "--tempo", &value) && value) {
+        args->tempo = atof(value);
+        if (args->tempo <= 0.0) {
+            args->tempo = 120.0;
+        }
+    }
+
+    if (ucra_find_arg(argc, argv, "-f", "--flags", &value) && value) {
+        args->flags_str = strdup(value);
+    }
+
+    if (ucra_find_arg(argc, argv, "-c", "--f0-curve", &value) && value) {
+        args->f0_curve_file = strdup(value);
+    }
+
+    if (ucra_find_arg(argc, argv, "-O", "--oto", &value) && value) {
+        args->oto_file = strdup(value);
+    }
+
+    if (ucra_find_arg(argc, argv, "-r", "--rate", &value) && value) {
+        args->sample_rate = (uint32_t)atoi(value);
+        if (args->sample_rate < 8000 || args->sample_rate > 192000) {
+            args->sample_rate = 44100;
         }
     }
 
