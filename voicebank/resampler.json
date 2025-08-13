@@ -1,0 +1,38 @@
+{
+  "name": "UCRA Test Engine",
+  "version": "1.0.0",
+  "vendor": "UCRA Development Team",
+  "license": "MIT",
+  "entry": {
+    "type": "dll",
+    "path": "test_engine.dll",
+    "symbol": "ucra_entry"
+  },
+  "audio": {
+    "rates": [22050, 44100, 48000],
+    "channels": [1, 2],
+    "streaming": true
+  },
+  "flags": [
+    {
+      "key": "brightness",
+      "type": "float",
+      "desc": "Voice brightness control",
+      "range": [0.0, 2.0],
+      "default": 1.0
+    },
+    {
+      "key": "formant_shift",
+      "type": "int",
+      "desc": "Formant shift in cents",
+      "range": [-1200, 1200],
+      "default": 0
+    },
+    {
+      "key": "consonant_clarity",
+      "type": "bool",
+      "desc": "Enhanced consonant clarity",
+      "default": false
+    }
+  ]
+}

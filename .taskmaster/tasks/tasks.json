@@ -144,7 +144,7 @@
           1,
           2
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -152,7 +152,7 @@
             "description": "Set up the basic executable project structure and implement a robust command-line argument parser to handle all standard UTAU resampler flags.",
             "dependencies": [],
             "details": "Use a suitable library (e.g., clap for Rust, argparse for C++) to define and parse arguments like --input, --output, --note, --tempo, --flags, --f0-curve, --vb-root, --oto, and --rate. The parser must validate the presence of required arguments and handle basic data type conversions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Create unit tests that pass various combinations of valid and invalid CLI arguments to the parser, verifying that it correctly extracts values and reports errors for missing or malformed arguments."
           },
           {
@@ -163,7 +163,7 @@
               "3.1"
             ],
             "details": "Based on the `--vb-root` argument provided by the parser, locate and parse the `resampler.json` file. Extract the engine ID and any default or engine-specific settings. This information is critical for populating the render configuration in a later step.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test with various valid and malformed `resampler.json` files. Verify that the correct engine ID is selected and that parsing errors are handled gracefully."
           },
           {
@@ -174,7 +174,7 @@
               "3.1"
             ],
             "details": "Process the `--note`, `--input` (source WAV), and `--f0-curve` arguments. This includes reading the temporary F0 curve file from disk, parsing its contents, and populating all relevant fields in the `UCRA_NoteSegment` instance, such as pitch, source file path, and the F0 data.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Provide mock CLI arguments and temporary files (e.g., a sample F0 curve). Verify that the resulting `UCRA_NoteSegment` structure is populated with the expected values and data."
           },
           {
@@ -186,7 +186,7 @@
               "3.2"
             ],
             "details": "Process arguments like `--tempo`, `--flags`, `--rate`, and `--oto`. Combine this with the engine configuration data loaded from the manifest to populate the `UCRA_RenderConfig` structure, including the selected engine ID, sample rate, and engine-specific flags.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Given a set of CLI arguments and a mock manifest object, verify that the `UCRA_RenderConfig` is created with the correct tempo, flags, sample rate, and engine ID."
           },
           {
@@ -198,7 +198,7 @@
               "3.4"
             ],
             "details": "Pass the fully populated `UCRA_NoteSegment` and `UCRA_RenderConfig` structures to the main UCRA rendering API function. Handle the returned audio buffer, write it to the file specified by the `--output` argument, and perform cleanup of any temporary files. Implement error handling for API failures.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Using mock `UCRA_NoteSegment` and `UCRA_RenderConfig` objects and a stubbed UCRA API, verify that the API is called with the correct parameters and that the mock output is written to the correct file path."
           }
         ]
@@ -688,7 +688,7 @@
     ],
     "metadata": {
       "created": "2025-08-10T12:56:02.632Z",
-      "updated": "2025-08-13T09:08:52.499Z",
+      "updated": "2025-08-13T10:07:35.401Z",
       "description": "Tasks for master context"
     }
   }

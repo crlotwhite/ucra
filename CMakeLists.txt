@@ -71,6 +71,10 @@ target_link_libraries(test_streaming_read ucra_impl)
 add_executable(test_streaming_integration tests/test_streaming_integration.c)
 target_link_libraries(test_streaming_integration ucra_impl)
 
+# UCRA Legacy CLI Bridge (resampler.exe replacement)
+add_executable(resampler src/resampler_cli.c)
+target_link_libraries(resampler ucra_impl)
+
 include(CTest)
 enable_testing()
 
