@@ -15,29 +15,25 @@
 #ifdef _WIN32
     #include <windows.h>
     #include <process.h>
+    /* winsock.h (pulled in by windows.h) already defines struct timeval */
     typedef HANDLE pthread_t;
     typedef CRITICAL_SECTION pthread_mutex_t;
     #define PTHREAD_MUTEX_INITIALIZER {}
     #define sleep(x) Sleep((x) * 1000)
     #define usleep(x) Sleep((x) / 1000)
 
-    /* Define timeval only if not already defined */
-    #ifndef _TIMEVAL_DEFINED
-        #define _TIMEVAL_DEFINED
-        struct timeval {
-            long tv_sec;
-            long tv_usec;
-        };
-    #endif
-
+    /* Lightweight gettimeofday replacement using FILETIME */
     static int gettimeofday(struct timeval* tv, void* tz) {
         (void)tz;
         FILETIME ft;
         GetSystemTimeAsFileTime(&ft);
-        uint64_t time = ((uint64_t)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
-        time = (time - 116444736000000000ULL) / 10; /* Convert to microseconds since epoch */
-        tv->tv_sec = (long)(time / 1000000);
-        tv->tv_usec = (long)(time % 1000000);
+        ULARGE_INTEGER uli;
+        uli.LowPart = ft.dwLowDateTime;
+        uli.HighPart = ft.dwHighDateTime;
+        /* Convert from 100-ns intervals since Jan 1 1601 to usec since Jan 1 1970 */
+        uint64_t t = (uli.QuadPart - 116444736000000000ULL) / 10ULL;
+        tv->tv_sec = (long)(t / 1000000ULL);
+        tv->tv_usec = (long)(t % 1000000ULL);
         return 0;
     }
 #else
