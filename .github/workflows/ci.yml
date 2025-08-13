@@ -53,10 +53,20 @@ jobs:
         with:
           name: ucra-build-${{ matrix.os }}-${{ matrix.build_type }}
           path: |
+            # Unix static libs & binary
             build/libucra_impl.a
             build/libcjson.a
             build/resampler
+            # Windows (multi-config) static libs & binary
+            build/${{ matrix.build_type }}/ucra_impl.lib
+            build/${{ matrix.build_type }}/cjson.lib
+            build/${{ matrix.build_type }}/resampler.exe
+            # Fallback if generator puts libs at top-level without prefix
+            build/ucra_impl.lib
+            build/cjson.lib
+            build/resampler.exe
           retention-days: 1
+          if-no-files-found: warn
 
   build-and-test-examples:
     name: Examples / ${{ matrix.os }} / ${{ matrix.build_type }}
