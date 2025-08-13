@@ -32,6 +32,58 @@ make
 sudo make install
 ```
 
+### (신규) 고수준 CMake API 사용
+UCRA는 JUCE 스타일의 헬퍼 CMake API를 제공합니다. 외부 프로젝트에서 `FetchContent` 로 통합 후 몇 줄로 코어를 구성할 수 있습니다.
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(ucra
+    GIT_REPOSITORY https://github.com/your-org/ucra.git
+    GIT_TAG main)
+FetchContent_MakeAvailable(ucra)
+
+include(${ucra_SOURCE_DIR}/cmake/UCRA.cmake)
+ucra_setup()
+ucra_add_core()           # ucra / ucra_impl 타겟 생성
+ucra_add_tests()          # (선택) 테스트 타겟
+ucra_add_examples()       # (선택) 예제 타겟
+ucra_export_package()     # (선택) 설치/패키징 메타
+
+add_executable(demo main.c)
+target_link_libraries(demo PRIVATE ucra)
+```
+
+기본 옵션 (CACHE 변수):
+
+| 변수 | 기본 | 설명 |
+|------|------|------|
+| UCRA_BUILD_STREAMING | ON | 스트리밍 API 포함 |
+| UCRA_WITH_RESAMPLER  | ON | resampler CLI 빌드 |
+| UCRA_BUILD_EXAMPLES  | ON | 예제 빌드 |
+| UCRA_BUILD_TESTS     | ON | 테스트 빌드 |
+| UCRA_INSTALL         | ON | 설치/Export 로직 활성화 |
+
+사용자 프로젝트에서 특정 기능 비활성화 예:
+```cmake
+set(UCRA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(UCRA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+```
+
+
+설치 후 소비:
+
+```cmake
+find_package(UCRA REQUIRED)
+add_executable(demo main.c)
+target_link_libraries(demo PRIVATE UCRA::ucra)
+```
+
+
+
+### WORLD 엔진 예제
+
+코어에서 WORLD 구현은 제거되었고, 예제용 스텁이 `examples/world` 에 위치합니다. 별도 엔진을 통합하려면 해당 디렉터리를 참고하여 자체 엔진을 구현하고 `ucra_register_engine()` (향후 확장) 패턴을 적용하세요.
+
 ### 테스트 실행
 
 ```bash
