@@ -12,11 +12,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Define UCRA_STATIC globally for static library builds
-# This prevents Windows DLL import/export issues (LNK2019 errors)
-# by ensuring UCRA_API resolves to empty instead of __declspec(dllimport)
-add_compile_definitions(UCRA_STATIC)
-
 # MSVC: Treat all source files as UTF-8 to support non-ASCII literals
 if(MSVC)
     add_compile_options(/utf-8)
@@ -52,6 +47,8 @@ target_include_directories(ucra_impl PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(ucra_impl cjson)
+# For static library, consumers should define UCRA_STATIC
+target_compile_definitions(ucra_impl PUBLIC UCRA_STATIC)
 
 # Shared library for language bindings
 add_library(ucra_impl_shared SHARED ${UCRA_SOURCES})
@@ -60,6 +57,8 @@ target_include_directories(ucra_impl_shared PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(ucra_impl_shared cjson)
+# For shared library, define UCRA_BUILD when building
+target_compile_definitions(ucra_impl_shared PRIVATE UCRA_BUILD)
 
 # Set output name to match what the bindings expect
 set_target_properties(ucra_impl_shared PROPERTIES
