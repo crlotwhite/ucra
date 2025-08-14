@@ -64,11 +64,20 @@ target_link_libraries(ucra_impl_shared cjson)
 target_compile_definitions(ucra_impl_shared PRIVATE UCRA_BUILD)
 
 # Set output name to match what the bindings expect
-set_target_properties(ucra_impl_shared PROPERTIES
-    OUTPUT_NAME "ucra_impl"
-    VERSION 1.0.0
-    SOVERSION 1
-)
+# Use different names for Windows to avoid conflicts with static library
+if(WIN32)
+    set_target_properties(ucra_impl_shared PROPERTIES
+        OUTPUT_NAME "ucra_impl_shared"
+        VERSION 1.0.0
+        SOVERSION 1
+    )
+else()
+    set_target_properties(ucra_impl_shared PROPERTIES
+        OUTPUT_NAME "ucra_impl"
+        VERSION 1.0.0
+        SOVERSION 1
+    )
+endif()
 
 # Link pthread for streaming functionality (Unix only)
 if(NOT WIN32)
