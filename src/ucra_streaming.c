@@ -205,6 +205,19 @@ UCRA_Result ucra_stream_open(UCRA_StreamHandle* out_stream,
     state->is_initialized = 1;
     state->is_closed = 0;
 
+    /* Pre-fill buffer with initial data to reduce latency */
+    pthread_mutex_lock(&state->mutex);
+    for (int i = 0; i < 3; i++) { /* Fill 3 blocks initially */
+        UCRA_Result prefill_result = refill_stream_buffer(state);
+        if (prefill_result != UCRA_SUCCESS) {
+            break; /* Stop if callback fails, but don't fail the open */
+        }
+        if (get_available_space_frames(state) < state->config.block_size) {
+            break; /* Buffer is getting full */
+        }
+    }
+    pthread_mutex_unlock(&state->mutex);
+
     *out_stream = (UCRA_StreamHandle)state;
     return UCRA_SUCCESS;
 }
@@ -257,8 +270,17 @@ static UCRA_Result refill_stream_buffer(UCRA_StreamState* state) {
         return callback_result;
     }
 
-    /* Determine how many frames to render */
-    uint32_t frames_to_write = state->config.block_size;
+    /* Fill buffer more aggressively - render multiple blocks if space available */
+    uint32_t blocks_to_render = available_space / state->config.block_size;
+    if (blocks_to_render == 0) {
+        blocks_to_render = 1; /* Always render at least one block if we have any space */
+    }
+    /* Limit to reasonable number to avoid long blocking */
+    if (blocks_to_render > 4) {
+        blocks_to_render = 4;
+    }
+
+    uint32_t frames_to_write = blocks_to_render * state->config.block_size;
     uint32_t channels = state->config.channels;
 
     /* Ensure we don't overflow the buffer */
@@ -343,8 +365,8 @@ UCRA_Result ucra_stream_read(UCRA_StreamHandle stream,
     uint32_t channels = state->config.channels;
 
     while (frames_copied < frame_count && !state->is_closed) {
-        /* If no data available, try to refill the buffer */
-        if (state->available_frames == 0) {
+        /* If buffer is running low, try to refill it proactively */
+        if (state->available_frames < state->config.block_size * 2) {
             UCRA_Result refill_result = refill_stream_buffer(state);
             if (refill_result != UCRA_SUCCESS) {
                 pthread_mutex_unlock(&state->mutex);
@@ -352,10 +374,17 @@ UCRA_Result ucra_stream_read(UCRA_StreamHandle stream,
             }
         }
 
-        /* If still no data available after refill, wait for it */
+        /* If no data available at all, wait for it but with timeout */
         if (state->available_frames == 0 && !state->is_closed) {
-            pthread_cond_wait(&state->data_available, &state->mutex);
-            continue;
+            /* Try one more refill attempt before waiting */
+            UCRA_Result refill_result = refill_stream_buffer(state);
+            if (refill_result == UCRA_SUCCESS && state->available_frames > 0) {
+                /* Successfully refilled, continue */
+                continue;
+            }
+
+            /* If still no data, break instead of waiting indefinitely */
+            break;
         }
 
         /* Copy available data */

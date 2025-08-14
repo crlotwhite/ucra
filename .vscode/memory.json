@@ -1,1 +1,1 @@
-{}
+{"type":"entity","name":"default_user","entityType":"person","observations":["Working on UCRA project testing","Using Korean language for communication","Debugging test failures in streaming integration tests","Successfully debugged UCRA streaming integration test failure","Fixed frame accuracy issue by improving buffer refilling strategy","Improved stream performance from 14.26% to 78.23% frame accuracy","Modified streaming implementation to pre-fill buffers and handle refilling more aggressively"]}
