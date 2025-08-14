@@ -29,3 +29,14 @@ build-*/
 
 # Third-party dependencies
 third-party/cJSON/
+
+# dotnet
+bin/
+obj/
+
+# python
+__pycache__/
+*.pyo
+*.pyd
+.pytest_cache/
+.venv

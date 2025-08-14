@@ -353,7 +353,7 @@
           1,
           5
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -361,7 +361,7 @@
             "description": "Create a header-only or compiled C++ wrapper for the UCRA C API, focusing on modern C++ idioms for resource management and usability.",
             "dependencies": [],
             "details": "Implement RAII principles for all UCRA handles (e.g., Engine, Voicebank) to ensure automatic resource cleanup. Encapsulate C structs like UCRA_NoteSegment and UCRA_RenderConfig within C++ classes. Provide clear error handling, potentially using C++ exceptions for API errors. The wrapper should feel natural to a C++ developer.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write C++ unit tests using a framework like GTest to verify object lifecycle (construction/destruction), method calls, and correct exception throwing on error conditions. Ensure no memory leaks using Valgrind or a similar tool."
           },
           {
@@ -370,7 +370,7 @@
             "description": "Create a .NET Standard library that wraps the native UCRA C API using Platform Invocation Services (P/Invoke) for use in C#, F#, and other .NET languages.",
             "dependencies": [],
             "details": "Define P/Invoke signatures for all exported C API functions. Create C# classes and structs that mirror the C API structures, using appropriate marshalling attributes (e.g., StructLayout). Implement the IDisposable pattern for classes managing native UCRA handles to ensure deterministic resource cleanup. Convert C API error codes into .NET exceptions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Create an NUnit or xUnit test project that references the wrapper DLL. Write tests that call all wrapped functions, verify correct data marshalling, and confirm that exceptions are thrown for invalid API usage. Use a memory profiler to check for unreleased native handles."
           },
           {
@@ -379,7 +379,7 @@
             "description": "Build a Python extension module using pybind11 to provide a high-level, Pythonic interface to the UCRA API, with a focus on data science ecosystem compatibility.",
             "dependencies": [],
             "details": "Write C++ binding code using pybind11 to expose UCRA functions and data structures as Python classes and methods. Implement automatic type conversions for array-like data (e.g., F0 curves, audio buffers) to and from NumPy arrays. Manage object lifetimes by tying Python object garbage collection to the underlying C resource cleanup. Raise Python exceptions for UCRA errors.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Use the pytest framework to write tests that import the compiled module. Verify object creation, method calls, and data exchange with NumPy arrays. Test that Python's garbage collector correctly triggers the cleanup of native resources by tracking allocations."
           },
           {
@@ -688,7 +688,7 @@
     ],
     "metadata": {
       "created": "2025-08-10T12:56:02.632Z",
-      "updated": "2025-08-14T06:58:17.838Z",
+      "updated": "2025-08-14T08:52:07.223Z",
       "description": "Tasks for master context"
     }
   }

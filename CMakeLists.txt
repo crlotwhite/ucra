@@ -45,6 +45,7 @@ target_compile_definitions(ucra INTERFACE UCRA_STATIC)
 # Main UCRA library implementation
 set(UCRA_SOURCES src/ucra_manifest.c src/ucra_streaming.c src/ucra_world_engine.cpp)
 
+# Static library (existing)
 add_library(ucra_impl STATIC ${UCRA_SOURCES})
 target_include_directories(ucra_impl PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -52,15 +53,32 @@ target_include_directories(ucra_impl PUBLIC
 )
 target_link_libraries(ucra_impl cjson)
 
+# Shared library for language bindings
+add_library(ucra_impl_shared SHARED ${UCRA_SOURCES})
+target_include_directories(ucra_impl_shared PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(ucra_impl_shared cjson)
+
+# Set output name to match what the bindings expect
+set_target_properties(ucra_impl_shared PROPERTIES
+    OUTPUT_NAME "ucra_impl"
+    VERSION 1.0.0
+    SOVERSION 1
+)
+
 # Link pthread for streaming functionality (Unix only)
 if(NOT WIN32)
     find_package(Threads REQUIRED)
     target_link_libraries(ucra_impl Threads::Threads)
+    target_link_libraries(ucra_impl_shared Threads::Threads)
 endif()
 
 # Link math library on Unix systems (required for sin, cos, pow, etc.)
 if(UNIX)
     target_link_libraries(ucra_impl m)
+    target_link_libraries(ucra_impl_shared m)
 endif()
 
 # Update interface library to include implementation
@@ -104,6 +122,13 @@ target_link_libraries(resampler ucra_impl)
 
 # Option to build tools (disabled by default for production builds)
 option(UCRA_BUILD_TOOLS "Build UCRA validation and testing tools" OFF)
+
+# Option to build language bindings
+option(UCRA_BUILD_BINDINGS "Build all language bindings" OFF)
+option(UCRA_BUILD_CPP_BINDINGS "Build C++ language bindings" ON)
+option(UCRA_BUILD_PYTHON_BINDINGS "Build Python language bindings" OFF)
+option(UCRA_BUILD_DOTNET_BINDINGS "Build .NET language bindings" OFF)
+option(UCRA_BUILD_RUST_BINDINGS "Build Rust language bindings" OFF)
 
 if(UCRA_BUILD_TOOLS)
     # F0 RMSE Calculation Utility
@@ -264,3 +289,36 @@ install(EXPORT UCRATargets
         FILE UCRATargets.cmake
         NAMESPACE UCRA::
         DESTINATION lib/cmake/UCRA)
+
+# ===================================================================
+# Language Bindings (Task 6)
+# ===================================================================
+
+# Add language bindings if requested
+if(UCRA_BUILD_BINDINGS)
+    # If general bindings flag is set, enable all specific bindings
+    set(UCRA_BUILD_CPP_BINDINGS ON)
+    set(UCRA_BUILD_PYTHON_BINDINGS ON)
+    set(UCRA_BUILD_DOTNET_BINDINGS ON)
+    set(UCRA_BUILD_RUST_BINDINGS ON)
+endif()
+
+if(UCRA_BUILD_CPP_BINDINGS)
+    add_subdirectory(bindings/cpp)
+    message(STATUS "C++ bindings will be built")
+endif()
+
+if(UCRA_BUILD_PYTHON_BINDINGS)
+    add_subdirectory(bindings/python)
+    message(STATUS "Python bindings will be built")
+endif()
+
+if(UCRA_BUILD_DOTNET_BINDINGS)
+    add_subdirectory(bindings/dotnet)
+    message(STATUS ".NET bindings will be built")
+endif()
+
+if(UCRA_BUILD_RUST_BINDINGS)
+    add_subdirectory(bindings/rust)
+    message(STATUS "Rust bindings will be built")
+endif()

@@ -1,0 +1,15 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Find the UCRA C library
+find_dependency(UCRA REQUIRED)
+
+# Include the target file
+include("${CMAKE_CURRENT_LIST_DIR}/ucra_cpp-targets.cmake")
+
+# Check that the component exists
+if(NOT TARGET UCRA::ucra_cpp)
+    set(ucra_cpp_FOUND FALSE)
+    set(ucra_cpp_NOT_FOUND_MESSAGE "UCRA C++ bindings target not found")
+endif()
