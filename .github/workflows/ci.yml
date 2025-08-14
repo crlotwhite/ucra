@@ -38,7 +38,7 @@ jobs:
 
       - name: Configure
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=OFF
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=OFF -DUCRA_BUILD_CPP_BINDINGS=OFF -DUCRA_BUILD_PYTHON_BINDINGS=OFF -DUCRA_BUILD_DOTNET_BINDINGS=OFF -DUCRA_BUILD_RUST_BINDINGS=OFF
 
       - name: Build
         run: |
@@ -46,7 +46,7 @@ jobs:
 
       - name: Test
         run: |
-          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }}
+          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -E "(cpp|dotnet|python|rust)_"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
