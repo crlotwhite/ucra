@@ -13,8 +13,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # MSVC: Treat all source files as UTF-8 to support non-ASCII literals
+# MSVC: Use static runtime library to avoid DLL dependencies in CI
 if(MSVC)
     add_compile_options(/utf-8)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
 # Add cJSON library from third-party sources
