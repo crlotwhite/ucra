@@ -1,0 +1,79 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Configure + Build with Rust bindings",
+			"type": "shell",
+			"command": "cmake -S . -B build -DUCRA_BUILD_RUST_BINDINGS=ON && cmake --build build -j",
+			"args": [],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Reconfigure (disable .NET/Python) + Build Rust",
+			"type": "shell",
+			"command": "cmake -S . -B build-rust -DUCRA_BUILD_CPP_BINDINGS=OFF -DUCRA_BUILD_PYTHON_BINDINGS=OFF -DUCRA_BUILD_DOTNET_BINDINGS=OFF -DUCRA_BUILD_RUST_BINDINGS=ON && cmake --build build-rust -j",
+			"args": [],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Build Rust-only again",
+			"type": "shell",
+			"command": "cmake --build build-rust -j",
+			"args": [],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Rebuild Rust wrapper",
+			"type": "shell",
+			"command": "cmake --build build-rust -j",
+			"args": [],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "ctest Rust-only build",
+			"type": "shell",
+			"command": "ctest --test-dir build-rust -j4 --output-on-failure",
+			"args": [],
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Reconfigure build-rust (no examples)",
+			"type": "shell",
+			"command": "cmake -S . -B build-rust -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_RUST_BINDINGS=ON && cmake --build build-rust -j",
+			"args": [],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Run ctest rust-only",
+			"type": "shell",
+			"command": "ctest --test-dir build-rust -j4 --output-on-failure",
+			"args": [],
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Rebuild and re-run ctest (rust-only)",
+			"type": "shell",
+			"command": "cmake --build build-rust -j && ctest --test-dir build-rust -j4 --output-on-failure",
+			"args": [],
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}

@@ -1,0 +1,9 @@
+[package]
+name = "ucra"
+version = "0.1.0"
+authors = ["UCRA Project"]
+edition = "2021"
+
+[dependencies]
+ucra-sys = { path = "../ucra-sys" }
+thiserror = "1"

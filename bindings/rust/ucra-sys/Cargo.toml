@@ -1,0 +1,20 @@
+[package]
+name = "ucra-sys"
+version = "0.1.0"
+authors = ["UCRA Project"]
+edition = "2021"
+links = "ucra_impl"
+rust-version = "1.70"
+build = "build.rs"
+
+[build-dependencies]
+bindgen = "0.69"
+cc = "1"
+
+[dependencies]
+libc = "0.2"
+
+[lib]
+name = "ucra_sys"
+path = "src/lib.rs"
+crate-type = ["rlib"]
