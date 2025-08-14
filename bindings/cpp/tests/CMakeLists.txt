@@ -16,12 +16,17 @@ else()
     add_test(NAME cpp_wrapper_test COMMAND test_ucra_cpp)
 endif()
 
+# WORLD 엔진 사용 여부 (기본: OFF). WORLD를 통합하면 상위 CMake에서 ON으로 설정하세요.
+option(UCRA_WITH_WORLD "Build/Run tests that require WORLD engine" OFF)
+
 # Sample application
 add_executable(cpp_sample_app sample_app.cpp)
 target_link_libraries(cpp_sample_app PRIVATE ucra_cpp)
 
-# Make sample app available for testing
-add_test(NAME cpp_sample_app_test COMMAND cpp_sample_app)
-set_tests_properties(cpp_sample_app_test PROPERTIES
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-)
+# Make sample app available for testing only when WORLD is enabled
+if(UCRA_WITH_WORLD)
+    add_test(NAME cpp_sample_app_test COMMAND cpp_sample_app)
+    set_tests_properties(cpp_sample_app_test PROPERTIES
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+endif()

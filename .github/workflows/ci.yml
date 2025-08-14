@@ -201,7 +201,8 @@ jobs:
           # Also copy to the test execution directory
           mkdir -p bindings/cpp/tests/voicebank
           cp -r examples/sample-voicebank/* bindings/cpp/tests/voicebank/
-          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "cpp"
+          # Run only wrapper unit tests; sample app requires WORLD, which CI doesn't build
+          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "cpp_wrapper_test"
 
       - name: Run C++ sample application with voicebank
         run: |
