@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <memory>
 #include <vector>
+#include <cstring>
 
 namespace py = pybind11;
 
@@ -168,8 +169,8 @@ public:
     PyEngine(const PyEngine&) = delete;
     PyEngine& operator=(const PyEngine&) = delete;
 
-    // Render method returning NumPy array
-    py::array_t<float> render(PyRenderConfig& config) {
+    // Render method returning NumPy array (subclass with metadata attributes)
+    py::object render(PyRenderConfig& config) {
         UCRA_RenderResult result_data;
         UCRA_Result result = ucra_render(engine_, config.get_raw(), &result_data);
         check_ucra_result(result, "Rendering");
@@ -185,12 +186,18 @@ public:
         auto buf = numpy_result.request();
         std::memcpy(buf.ptr, result_data.pcm, total_samples * sizeof(float));
 
-        // Set attributes
-        numpy_result.attr("sample_rate") = result_data.sample_rate;
-        numpy_result.attr("frames") = result_data.frames;
-        numpy_result.attr("channels") = result_data.channels;
+        // Convert to our ndarray subclass so we can attach attributes
+        // Fetch the AudioArray class defined in module init (see main.cpp)
+        py::module m = py::module::import("ucra");
+        py::object audio_cls = m.attr("AudioArray");
+        py::object view = numpy_result.attr("view")(audio_cls);
 
-        return numpy_result;
+        // Set metadata attributes on the subclass instance
+        view.attr("sample_rate") = py::int_(result_data.sample_rate);
+        view.attr("frames") = py::int_(result_data.frames);
+        view.attr("channels") = py::int_(result_data.channels);
+
+        return view;
     }
 };
 

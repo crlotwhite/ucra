@@ -14,6 +14,19 @@ PYBIND11_MODULE(ucra, m) {
     m.doc() = "UCRA Python bindings - Audio synthesis and rendering library";
     m.attr("__version__") = "1.0.0";
 
+    // Define a simple ndarray subclass to carry audio metadata attributes
+    // This enables tests to access attributes like sample_rate/frames/channels
+    py::object np = py::module::import("numpy");
+    py::object ndarray = np.attr("ndarray");
+    py::object dict = py::dict();
+    py::object bases = py::make_tuple(ndarray);
+    py::object AudioArray = py::reinterpret_borrow<py::object>(PyObject_CallFunctionObjArgs((PyObject*)&PyType_Type,
+                                                                                           py::str("AudioArray").ptr(),
+                                                                                           bases.ptr(),
+                                                                                           dict.ptr(),
+                                                                                           nullptr));
+    m.attr("AudioArray") = AudioArray;
+
     // Bind all components
     bind_types(m);
     bind_curves(m);

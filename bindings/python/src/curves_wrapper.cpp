@@ -4,6 +4,7 @@
 #include <ucra/ucra.h>
 #include <stdexcept>
 #include <memory>
+#include <cstring>
 
 namespace py = pybind11;
 
