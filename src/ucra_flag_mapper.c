@@ -1,5 +1,5 @@
 #include "ucra/ucra_flag_mapper.h"
-#include "cJSON.h"
+#include "../third-party/cJSON.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -129,7 +129,7 @@ static void ucra_free_rule(UCRA_FlagRule* rule) {
     memset(rule, 0, sizeof(UCRA_FlagRule));
 }
 
-UCRA_Result ucra_flag_mapper_load(const char* json_path, UCRA_FlagMapper** mapper) {
+UCRA_API UCRA_Result UCRA_CALL ucra_flag_mapper_load(const char* json_path, UCRA_FlagMapper** mapper) {
     if (!json_path || !mapper) return UCRA_ERR_INVALID_ARGUMENT;
 
     FILE* file = fopen(json_path, "r");
@@ -211,7 +211,7 @@ UCRA_Result ucra_flag_mapper_load(const char* json_path, UCRA_FlagMapper** mappe
     return UCRA_SUCCESS;
 }
 
-void ucra_flag_mapper_free(UCRA_FlagMapper* mapper) {
+UCRA_API void UCRA_CALL ucra_flag_mapper_free(UCRA_FlagMapper* mapper) {
     if (!mapper) return;
 
     free(mapper->engine_name);
@@ -274,9 +274,9 @@ static char* ucra_apply_transform(const UCRA_FlagRule* rule, const char* input_v
     }
 }
 
-UCRA_Result ucra_flag_mapper_apply(const UCRA_FlagMapper* mapper,
-                                  const UCRA_KeyValue* legacy_flags, uint32_t legacy_count,
-                                  UCRA_FlagMapResult* result) {
+UCRA_API UCRA_Result UCRA_CALL ucra_flag_mapper_apply(const UCRA_FlagMapper* mapper,
+                                                    const UCRA_KeyValue* legacy_flags, uint32_t legacy_count,
+                                                    UCRA_FlagMapResult* result) {
     if (!mapper || !result) return UCRA_ERR_INVALID_ARGUMENT;
 
     memset(result, 0, sizeof(UCRA_FlagMapResult));
@@ -332,7 +332,7 @@ UCRA_Result ucra_flag_mapper_apply(const UCRA_FlagMapper* mapper,
     return UCRA_SUCCESS;
 }
 
-void ucra_flag_map_result_free(UCRA_FlagMapResult* result) {
+UCRA_API void UCRA_CALL ucra_flag_map_result_free(UCRA_FlagMapResult* result) {
     if (!result) return;
 
     if (result->flags) {
@@ -353,7 +353,7 @@ void ucra_flag_map_result_free(UCRA_FlagMapResult* result) {
     memset(result, 0, sizeof(UCRA_FlagMapResult));
 }
 
-UCRA_Result ucra_parse_legacy_flags(const char* flag_str, UCRA_KeyValue** flags, uint32_t* count) {
+UCRA_API UCRA_Result UCRA_CALL ucra_parse_legacy_flags(const char* flag_str, UCRA_KeyValue** flags, uint32_t* count) {
     if (!flag_str || !flags || !count) return UCRA_ERR_INVALID_ARGUMENT;
 
     *flags = NULL;
@@ -406,7 +406,7 @@ UCRA_Result ucra_parse_legacy_flags(const char* flag_str, UCRA_KeyValue** flags,
     return UCRA_SUCCESS;
 }
 
-void ucra_free_legacy_flags(UCRA_KeyValue* flags, uint32_t count) {
+UCRA_API void UCRA_CALL ucra_free_legacy_flags(UCRA_KeyValue* flags, uint32_t count) {
     if (!flags) return;
 
     for (uint32_t i = 0; i < count; i++) {
