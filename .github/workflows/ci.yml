@@ -195,14 +195,15 @@ jobs:
 
       - name: Test C++ bindings
         run: |
+          # Copy sample voicebank to test working directory
+          mkdir -p build/voicebank
+          cp -r examples/sample-voicebank/* build/voicebank/
           ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "cpp"
 
       - name: Run C++ sample application with voicebank
         run: |
           cd build
-          # Copy sample voicebank to a location the sample can find
-          mkdir -p voicebank
-          cp -r ../examples/sample-voicebank/* voicebank/
+          # Voicebank already copied in test step
           ./bindings/cpp/tests/cpp_sample_app || echo "Note: C++ sample failed"
 
   build-and-test-dotnet-bindings:
@@ -238,15 +239,29 @@ jobs:
         run: |
           cmake --build build --config ${{ matrix.build_type }} --parallel
 
-      - name: Test .NET bindings
+      - name: Check built libraries
         run: |
+          echo "Checking built libraries:"
+          find build -name "*ucra_impl*" -type f
+          ldd build/libucra_impl.so || echo "ldd not available or library not found"
+
+      - name: Test .NET bindings
+        env:
+          LD_LIBRARY_PATH: ${{ github.workspace }}/build:$LD_LIBRARY_PATH
+        run: |
+          # Copy sample voicebank to .NET test directory
+          mkdir -p bindings/dotnet/voicebank
+          cp -r examples/sample-voicebank/* bindings/dotnet/voicebank/
+          # Copy shared library to .NET output directory to help with loading
+          cp build/libucra_impl.so bindings/dotnet/bin/Release/netstandard2.0/ || echo "Failed to copy library"
+          cp build/libucra_impl.so bindings/dotnet/tests/bin/Release/net6.0/ || echo "Failed to copy library to test dir"
           ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "dotnet"
 
       - name: Run .NET sample application with voicebank
+        env:
+          LD_LIBRARY_PATH: ${{ github.workspace }}/build:$LD_LIBRARY_PATH
         run: |
-          # Copy sample voicebank to .NET bindings directory
-          mkdir -p bindings/dotnet/voicebank
-          cp -r examples/sample-voicebank/* bindings/dotnet/voicebank/
+          # Voicebank already copied in previous step
           cd bindings/dotnet
           dotnet run --project samples/UCRA.NET.Sample.csproj -c Release || echo "Note: .NET sample failed"
 
@@ -274,6 +289,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pybind11 numpy pytest
+
       - name: Configure UCRA
         env:
           CI: true
@@ -283,11 +303,6 @@ jobs:
       - name: Build UCRA library
         run: |
           cmake --build build --config ${{ matrix.build_type }} --parallel
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pybind11 numpy pytest
 
       - name: Configure Python bindings
         run: |
