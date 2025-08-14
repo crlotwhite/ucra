@@ -49,17 +49,17 @@ typedef struct UCRA_FlagMapResult {
 } UCRA_FlagMapResult;
 
 /* API functions */
-UCRA_API UCRA_Result UCRA_CALL ucra_flag_mapper_load(const char* json_path, UCRA_FlagMapper** mapper);
-UCRA_API void UCRA_CALL ucra_flag_mapper_free(UCRA_FlagMapper* mapper);
+UCRA_Result ucra_flag_mapper_load(const char* json_path, UCRA_FlagMapper** mapper);
+void ucra_flag_mapper_free(UCRA_FlagMapper* mapper);
 
-UCRA_API UCRA_Result UCRA_CALL ucra_flag_mapper_apply(const UCRA_FlagMapper* mapper,
-                                                     const UCRA_KeyValue* legacy_flags, uint32_t legacy_count,
-                                                     UCRA_FlagMapResult* result);
-UCRA_API void UCRA_CALL ucra_flag_map_result_free(UCRA_FlagMapResult* result);
+UCRA_Result ucra_flag_mapper_apply(const UCRA_FlagMapper* mapper,
+                                  const UCRA_KeyValue* legacy_flags, uint32_t legacy_count,
+                                  UCRA_FlagMapResult* result);
+void ucra_flag_map_result_free(UCRA_FlagMapResult* result);
 
 /* Utility function to parse legacy flag string "key1=val1;key2=val2" */
-UCRA_API UCRA_Result UCRA_CALL ucra_parse_legacy_flags(const char* flag_str, UCRA_KeyValue** flags, uint32_t* count);
-UCRA_API void UCRA_CALL ucra_free_legacy_flags(UCRA_KeyValue* flags, uint32_t count);
+UCRA_Result ucra_parse_legacy_flags(const char* flag_str, UCRA_KeyValue** flags, uint32_t* count);
+void ucra_free_legacy_flags(UCRA_KeyValue* flags, uint32_t count);
 
 #ifdef __cplusplus
 }
