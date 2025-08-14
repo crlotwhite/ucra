@@ -1,0 +1,26 @@
+{
+  "engine": "moresampler",
+  "version": "1.0",
+  "rules": [
+    {
+      "source": {"name": "g", "type": "number"},
+      "target": {"name": "gender", "default": "0.0"},
+      "transform": {"kind": "scale", "scale": [-1.0, 1.0]}
+    },
+    {
+      "source": {"name": "v", "type": "number"},
+      "target": {"name": "velocity", "default": 100},
+      "transform": {"kind": "scale", "scale": [0, 127]}
+    },
+    {
+      "source": {"name": "B", "type": "number"},
+      "target": {"name": "breathiness", "default": "0.0"},
+      "transform": {"kind": "scale", "scale": [0, 1]}
+    },
+    {
+      "source": {"name": "mode", "type": "string"},
+      "target": {"name": "articulation"},
+      "transform": {"kind": "map", "map": {"0": "legato", "1": "staccato", "2": "accent"}}
+    }
+  ]
+}

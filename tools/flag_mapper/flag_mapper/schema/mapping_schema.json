@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "UCRA Flag Mapping Schema",
+  "type": "object",
+  "required": ["engine", "rules"],
+  "properties": {
+    "engine": {"type": "string"},
+    "version": {"type": "string"},
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "transform"],
+        "properties": {
+          "source": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {"type": "string"},
+              "type": {"type": "string", "enum": ["number","string","bool"]}
+            }
+          },
+          "target": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {"type": "string"},
+              "default": {}
+            }
+          },
+          "transform": {
+            "type": "object",
+            "properties": {
+              "kind": {"type": "string", "enum": ["copy","scale","map","constant"]},
+              "scale": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+              "map": {"type": "object"}
+            }
+          },
+          "conflict": {"type": "string", "enum": ["error","warn","first","last"]}
+        }
+      }
+    }
+  }
+}

@@ -39,7 +39,7 @@ target_compile_definitions(ucra INTERFACE UCRA_STATIC)
 
 # Main UCRA library implementation
 # Replace WORLD-dependent engine with pure C engine implementation
-set(UCRA_SOURCES src/ucra_manifest.c src/ucra_streaming.c src/ucra_engine.c)
+set(UCRA_SOURCES src/ucra_manifest.c src/ucra_streaming.c src/ucra_engine.c src/ucra_flag_mapper.c)
 
 # Static library (existing)
 add_library(ucra_impl STATIC ${UCRA_SOURCES})

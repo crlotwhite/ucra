@@ -4,6 +4,7 @@
  */
 
 #include "ucra/ucra.h"
+#include "ucra/ucra_flag_mapper.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -372,14 +373,57 @@ static UCRA_Result ucra_cli_to_render_config(const UCRA_CLIArgs* args, const UCR
     config->notes = note;
     config->note_count = 1;
 
-    /* Parse engine flags if provided */
+    /* Apply flag mapping if provided */
     if (args->flags_str && options) {
-        /* Simple key=value parsing for demonstration */
-        /* TODO: Implement more sophisticated flag parsing */
-        config->options = options;
-        config->option_count = 1;
-        options[0].key = "flags";
-        options[0].value = args->flags_str;
+        /* Parse legacy flags */
+        UCRA_KeyValue* legacy_flags = NULL;
+        uint32_t legacy_count = 0;
+        UCRA_Result result = ucra_parse_legacy_flags(args->flags_str, &legacy_flags, &legacy_count);
+
+        if (result == UCRA_SUCCESS && legacy_count > 0) {
+            /* Try to load default moresampler mapping */
+            UCRA_FlagMapper* mapper = NULL;
+            const char* mapping_path = "tools/flag_mapper/mappings/moresampler_map.json";
+
+            if (ucra_flag_mapper_load(mapping_path, &mapper) == UCRA_SUCCESS) {
+                UCRA_FlagMapResult map_result;
+                if (ucra_flag_mapper_apply(mapper, legacy_flags, legacy_count, &map_result) == UCRA_SUCCESS) {
+                    /* Use mapped flags */
+                    config->options = map_result.flags;
+                    config->option_count = map_result.flag_count;
+
+                    /* Print warnings if any */
+                    for (uint32_t i = 0; i < map_result.warning_count; i++) {
+                        fprintf(stderr, "Flag mapping warning: %s\n", map_result.warnings[i]);
+                    }
+
+                    /* Note: Caller is responsible for cleanup of map_result */
+                } else {
+                    printf("Warning: Flag mapping failed, using raw flags\n");
+                    /* Fallback to simple key=value parsing */
+                    config->options = options;
+                    config->option_count = 1;
+                    options[0].key = "flags";
+                    options[0].value = args->flags_str;
+                }
+                ucra_flag_mapper_free(mapper);
+            } else {
+                printf("Warning: Could not load flag mapping, using raw flags\n");
+                /* Fallback to simple key=value parsing */
+                config->options = options;
+                config->option_count = 1;
+                options[0].key = "flags";
+                options[0].value = args->flags_str;
+            }
+
+            ucra_free_legacy_flags(legacy_flags, legacy_count);
+        } else {
+            /* Fallback to simple key=value parsing */
+            config->options = options;
+            config->option_count = 1;
+            options[0].key = "flags";
+            options[0].value = args->flags_str;
+        }
     }
 
     return UCRA_SUCCESS;
