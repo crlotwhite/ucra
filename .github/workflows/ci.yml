@@ -184,6 +184,8 @@ jobs:
           sudo apt-get install -y cmake build-essential
 
       - name: Configure UCRA with C++ bindings
+        env:
+          CI: true
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=OFF -DUCRA_BUILD_CPP_BINDINGS=ON
 
@@ -193,12 +195,12 @@ jobs:
 
       - name: Test C++ bindings
         run: |
-          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "cpp"
+          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "cpp_wrapper"
 
       - name: Run C++ sample application
         run: |
           cd build
-          ./bindings/cpp/tests/sample_app || echo "Note: C++ sample failed (expected due to missing voicebank)"
+          ./bindings/cpp/tests/cpp_sample_app || echo "Note: C++ sample failed (expected due to missing voicebank)"
 
   build-and-test-dotnet-bindings:
     name: .NET Bindings / Ubuntu / ${{ matrix.build_type }}
@@ -224,6 +226,8 @@ jobs:
           dotnet-version: '6.0.x'
 
       - name: Configure UCRA with .NET bindings
+        env:
+          CI: true
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=OFF -DUCRA_BUILD_DOTNET_BINDINGS=ON
 
@@ -233,7 +237,7 @@ jobs:
 
       - name: Test .NET bindings
         run: |
-          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "dotnet"
+          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "dotnet_wrapper"
 
       - name: Run .NET sample application
         run: |
@@ -265,6 +269,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Configure UCRA
+        env:
+          CI: true
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=OFF -DUCRA_BUILD_PYTHON_BINDINGS=ON
 

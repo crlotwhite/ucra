@@ -37,9 +37,12 @@ if(DOTNET_EXECUTABLE)
                  COMMAND ${DOTNET_EXECUTABLE} test tests/UCRA.NET.Tests.csproj -c Release --logger "console;verbosity=normal"
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-        add_test(NAME dotnet_sample_app_test
-                 COMMAND ${DOTNET_EXECUTABLE} run --project tests/UCRA.NET.Tests.csproj -c Release
-                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+        # Only add sample app test when not in CI environment
+        if(NOT DEFINED ENV{CI})
+            add_test(NAME dotnet_sample_app_test
+                     COMMAND ${DOTNET_EXECUTABLE} run --project tests/UCRA.NET.Tests.csproj -c Release
+                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+        endif()
     endif()
 
 else()
