@@ -39,7 +39,30 @@ set(PYBIND_SOURCES
 pybind11_add_module(ucra_py ${PYBIND_SOURCES})
 
 # Link against UCRA library
-target_link_libraries(ucra_py PRIVATE ucra_impl_shared)
+# Try to find the shared library first, then fallback to static
+find_library(UCRA_SHARED_LIB
+    NAMES ucra_impl_shared ucra_impl
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/../../build
+    NO_DEFAULT_PATH
+)
+
+if(UCRA_SHARED_LIB)
+    message(STATUS "Found UCRA shared library: ${UCRA_SHARED_LIB}")
+    target_link_libraries(ucra_py PRIVATE ${UCRA_SHARED_LIB})
+else()
+    # Fallback to static library
+    find_library(UCRA_STATIC_LIB
+        NAMES ucra_impl
+        PATHS ${CMAKE_CURRENT_SOURCE_DIR}/../../build
+        NO_DEFAULT_PATH
+    )
+    if(UCRA_STATIC_LIB)
+        message(STATUS "Found UCRA static library: ${UCRA_STATIC_LIB}")
+        target_link_libraries(ucra_py PRIVATE ${UCRA_STATIC_LIB})
+    else()
+        message(FATAL_ERROR "Could not find UCRA library (shared or static)")
+    endif()
+endif()
 
 # Set module properties
 set_target_properties(ucra_py PROPERTIES
