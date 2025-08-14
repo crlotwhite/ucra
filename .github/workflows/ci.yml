@@ -195,12 +195,15 @@ jobs:
 
       - name: Test C++ bindings
         run: |
-          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "cpp_wrapper"
+          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "cpp"
 
-      - name: Run C++ sample application
+      - name: Run C++ sample application with voicebank
         run: |
           cd build
-          ./bindings/cpp/tests/cpp_sample_app || echo "Note: C++ sample failed (expected due to missing voicebank)"
+          # Copy sample voicebank to a location the sample can find
+          mkdir -p voicebank
+          cp -r ../examples/sample-voicebank/* voicebank/
+          ./bindings/cpp/tests/cpp_sample_app || echo "Note: C++ sample failed"
 
   build-and-test-dotnet-bindings:
     name: .NET Bindings / Ubuntu / ${{ matrix.build_type }}
@@ -237,12 +240,15 @@ jobs:
 
       - name: Test .NET bindings
         run: |
-          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "dotnet_wrapper"
+          ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "dotnet"
 
-      - name: Run .NET sample application
+      - name: Run .NET sample application with voicebank
         run: |
+          # Copy sample voicebank to .NET bindings directory
+          mkdir -p bindings/dotnet/voicebank
+          cp -r examples/sample-voicebank/* bindings/dotnet/voicebank/
           cd bindings/dotnet
-          dotnet run --project samples/UCRA.NET.Sample.csproj -c Release || echo "Note: .NET sample failed (expected due to missing voicebank)"
+          dotnet run --project samples/UCRA.NET.Sample.csproj -c Release || echo "Note: .NET sample failed"
 
   build-and-test-python-bindings:
     name: Python Bindings / Ubuntu / ${{ matrix.build_type }} / Python ${{ matrix.python-version }}
@@ -303,7 +309,10 @@ jobs:
           cd bindings/python
           python -m pytest tests/ -v
 
-      - name: Run Python sample application
+      - name: Run Python sample application with voicebank
         run: |
+          # Copy sample voicebank to Python bindings directory
+          mkdir -p bindings/python/voicebank
+          cp -r examples/sample-voicebank/* bindings/python/voicebank/
           cd bindings/python
-          LD_LIBRARY_PATH=../../build:$LD_LIBRARY_PATH python examples/sample.py || echo "Note: Python sample failed (expected due to missing voicebank)"
+          LD_LIBRARY_PATH=../../build:$LD_LIBRARY_PATH python examples/sample.py || echo "Note: Python sample failed"

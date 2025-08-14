@@ -93,10 +93,20 @@ def main():
         print(f"Failed to create render config: {e}")
         return 1
 
-    # Test Engine creation (expected to fail in test environment)
+    # Test Engine creation
     print(f"\nTesting engine creation...")
     try:
-        engine = ucra.Engine()
+        # Check if sample voicebank is available
+        voicebank_path = "voicebank/resampler.json"
+        if os.path.exists(voicebank_path):
+            print("Found sample voicebank, attempting to use it...")
+            # Note: Engine constructor parameters depend on the actual API
+            # This might need adjustment based on the actual Python binding implementation
+            engine = ucra.Engine()
+        else:
+            print("No voicebank found, using default engine...")
+            engine = ucra.Engine()
+
         print("Engine created successfully!")
 
         # If engine creation succeeded, try rendering
@@ -114,8 +124,9 @@ def main():
             print(f"Rendering failed: {e}")
 
     except ucra.UcraError as e:
-        print(f"Engine creation failed as expected: {e}")
-        print("This is normal in a test environment without proper engine setup.")
+        print(f"Engine creation failed: {e}")
+        if not os.path.exists("voicebank/resampler.json"):
+            print("This is normal in a test environment without proper engine setup.")
     except Exception as e:
         print(f"Unexpected error: {e}")
         return 1

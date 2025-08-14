@@ -54,7 +54,16 @@ int main() {
         // 1. Create engine
         std::cout << "1. Creating UCRA engine...\n";
         std::unordered_map<std::string, std::string> engine_options;
-        engine_options["sample_mode"] = "true"; // Use sample mode for testing
+
+        // Check if sample voicebank is available
+        std::ifstream voicebank_check("voicebank/resampler.json");
+        if (voicebank_check.good()) {
+            std::cout << "   Found sample voicebank, using it...\n";
+            engine_options["voicebank_path"] = "voicebank";
+        } else {
+            std::cout << "   No voicebank found, using sample mode...\n";
+            engine_options["sample_mode"] = "true"; // Use sample mode for testing
+        }
 
         ucra::Engine engine(engine_options);
 
