@@ -22,3 +22,6 @@ target_link_libraries(cpp_sample_app PRIVATE ucra_cpp)
 
 # Make sample app available for testing
 add_test(NAME cpp_sample_app_test COMMAND cpp_sample_app)
+set_tests_properties(cpp_sample_app_test PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)

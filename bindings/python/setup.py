@@ -37,6 +37,16 @@ ext_modules = [
     ),
 ]
 
+# Ensure runtime linker can find libucra_impl at runtime on Linux
+if sys.platform.startswith("linux"):
+    for ext in ext_modules:
+        # Add rpath to $ORIGIN (so placing lib next to extension works)
+        # and to top-level build dir
+        ext.runtime_library_dirs = [
+            "$ORIGIN",
+            str(Path(__file__).parent.parent.parent / "build"),
+        ]
+
 setup(
     name="ucra-python",
     version="1.0.0",
@@ -45,7 +55,8 @@ setup(
     url="https://github.com/ucra/ucra",
     description="Python bindings for UCRA audio synthesis library",
     long_description="""
-UCRA Python bindings provide a Pythonic interface to the UCRA audio synthesis library.
+UCRA Python bindings provide a Pythonic interface to the UCRA audio synthesis
+library.
 Features include:
 - Easy-to-use engine for audio rendering
 - NumPy integration for efficient data handling

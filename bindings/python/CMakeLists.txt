@@ -38,31 +38,9 @@ set(PYBIND_SOURCES
 # Create the pybind11 module
 pybind11_add_module(ucra_py ${PYBIND_SOURCES})
 
-# Link against UCRA library
-# Try to find the shared library first, then fallback to static
-find_library(UCRA_SHARED_LIB
-    NAMES ucra_impl_shared ucra_impl
-    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/../../build
-    NO_DEFAULT_PATH
-)
-
-if(UCRA_SHARED_LIB)
-    message(STATUS "Found UCRA shared library: ${UCRA_SHARED_LIB}")
-    target_link_libraries(ucra_py PRIVATE ${UCRA_SHARED_LIB})
-else()
-    # Fallback to static library
-    find_library(UCRA_STATIC_LIB
-        NAMES ucra_impl
-        PATHS ${CMAKE_CURRENT_SOURCE_DIR}/../../build
-        NO_DEFAULT_PATH
-    )
-    if(UCRA_STATIC_LIB)
-        message(STATUS "Found UCRA static library: ${UCRA_STATIC_LIB}")
-        target_link_libraries(ucra_py PRIVATE ${UCRA_STATIC_LIB})
-    else()
-        message(FATAL_ERROR "Could not find UCRA library (shared or static)")
-    endif()
-endif()
+# Link against UCRA shared library target defined by the top-level project
+# On all platforms the shared target name is 'ucra_impl' (OUTPUT_NAME is 'ucra_impl').
+target_link_libraries(ucra_py PRIVATE ucra_impl)
 
 # Set module properties
 set_target_properties(ucra_py PROPERTIES
@@ -71,8 +49,11 @@ set_target_properties(ucra_py PROPERTIES
     SUFFIX "${Python_SOABI}${CMAKE_SHARED_LIBRARY_SUFFIX}"
 )
 
-# Ensure we find the UCRA shared library
-target_link_directories(ucra_py PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../build)
+# Ensure we find the UCRA shared library if built in top-level 'build'
+target_link_directories(ucra_py PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../build
+    ${CMAKE_BINARY_DIR}
+)
 
 # Add include directories
 target_include_directories(ucra_py PRIVATE

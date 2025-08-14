@@ -55,45 +55,34 @@ int main() {
         std::cout << "1. Creating UCRA engine...\n";
         std::unordered_map<std::string, std::string> engine_options;
 
-        // Check if sample voicebank is available
-        std::cout << "   Checking for voicebank files...\n";
+        // Check if sample voicebank is available in a few common locations
+        const char* candidates[] = {
+            "voicebank/resampler.json",          // current working dir
+            "../../voicebank/resampler.json",    // running from bindings/cpp/tests
+            "../voicebank/resampler.json",       // running from build/bindings/cpp/tests
+            "./build/voicebank/resampler.json",  // running from repo root
+        };
 
-        // Debug: List current working directory
-        std::cout << "   Current working directory contents:\n";
-        system("ls -la");
-        std::cout << "   Looking for voicebank directories:\n";
-        system("find . -name 'voicebank' -type d 2>/dev/null || true");
-        system("find .. -name 'voicebank' -type d 2>/dev/null || true");
-        system("find ../.. -name 'voicebank' -type d 2>/dev/null || true");
-
-        std::ifstream voicebank_check("voicebank/resampler.json");
-        std::string voicebank_path;
-
-        if (voicebank_check.good()) {
-            voicebank_path = "voicebank";
-            std::cout << "   Found voicebank at: ./voicebank/\n";
-        } else {
-            voicebank_check.close();
-            voicebank_check.open("../../voicebank/resampler.json");
-            if (voicebank_check.good()) {
-                voicebank_path = "../../voicebank";
-                std::cout << "   Found voicebank at: ../../voicebank/\n";
-            } else {
-                voicebank_check.close();
-                voicebank_check.open("../voicebank/resampler.json");
-                if (voicebank_check.good()) {
-                    voicebank_path = "../voicebank";
-                    std::cout << "   Found voicebank at: ../voicebank/\n";
+        std::string chosen_voicebank;
+        for (const char* c : candidates) {
+            std::ifstream f(c);
+            if (f.good()) {
+                // strip trailing filename to get directory
+                std::string path(c);
+                auto pos = path.rfind('/');
+                if (pos != std::string::npos) {
+                    chosen_voicebank = path.substr(0, pos);
                 }
+                break;
             }
         }
 
-        if (!voicebank_path.empty()) {
-            std::cout << "   Using voicebank path: " << voicebank_path << "\n";
-            engine_options["voicebank_path"] = voicebank_path;
+        if (!chosen_voicebank.empty()) {
+            std::cout << "   Found sample voicebank at '" << chosen_voicebank << "', using it...\n";
+            engine_options["voicebank_path"] = chosen_voicebank;
         } else {
-            std::cout << "   No voicebank found, will try to create engine without voicebank...\n";
-            // Don't set any options and see what happens
+            std::cout << "   No voicebank found, trying sample mode...\n";
+            // Try without any options first; if engine rejects, test will report clearly
         }
 
         ucra::Engine engine(engine_options);

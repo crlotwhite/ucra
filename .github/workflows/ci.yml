@@ -307,32 +307,15 @@ jobs:
         run: |
           cmake --build build --config ${{ matrix.build_type }} --parallel
 
-      - name: Debug - Check built libraries
-        run: |
-          echo "=== Checking build directory ==="
-          ls -la build/
-          echo "=== Looking for UCRA libraries ==="
-          find build/ -name "*ucra*" -type f
-          echo "=== Checking library symbols ==="
-          file build/libucra_impl* 2>/dev/null || echo "No libucra_impl found"
-
-      - name: Configure Python bindings
+      - name: Build Python bindings (via setuptools)
         run: |
           cd bindings/python
-          echo "=== Checking for UCRA libraries ==="
-          find ../../build/ -name "*ucra*" -type f
-          echo "=== Configuring Python bindings ==="
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-
-      - name: Build Python bindings
-        run: |
-          cd bindings/python
-          cmake --build build --config ${{ matrix.build_type }} --parallel
-
-      - name: Install Python module
-        run: |
-          cd bindings/python
+          python -m pip install --upgrade pip
           pip install -e .
+
+      - name: Verify Python module import
+        run: |
+          python -c "import ucra; print('ucra imported OK')"
 
       - name: Test Python bindings
         run: |
