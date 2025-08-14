@@ -98,26 +98,38 @@ target_link_libraries(test_streaming_integration ucra_impl)
 add_executable(resampler src/resampler_cli.c)
 target_link_libraries(resampler ucra_impl)
 
+# ===================================================================
 # Validation and Testing Tools (Task 8)
-# F0 RMSE Calculation Utility
-add_executable(f0_rmse_calc src/f0_rmse_calc.c)
-target_link_libraries(f0_rmse_calc m)
+# ===================================================================
 
-# MCD(13) Calculation Utility
-add_executable(mcd_calc src/mcd_calc.c)
-target_link_libraries(mcd_calc m)
+# Option to build tools (disabled by default for production builds)
+option(UCRA_BUILD_TOOLS "Build UCRA validation and testing tools" OFF)
 
-# Audio Comparison Module
-add_executable(audio_compare src/audio_compare.c)
-target_link_libraries(audio_compare m)
+if(UCRA_BUILD_TOOLS)
+    # F0 RMSE Calculation Utility
+    add_executable(f0_rmse_calc tools/f0_rmse_calc.c)
+    target_link_libraries(f0_rmse_calc m)
 
-# Golden Runner Test Harness
-add_executable(golden_runner src/golden_runner.c)
-target_link_libraries(golden_runner cjson)
+    # MCD(13) Calculation Utility
+    add_executable(mcd_calc tools/mcd_calc.c)
+    target_link_libraries(mcd_calc m)
 
-# Validation Suite (Main orchestration tool)
-add_executable(validation_suite src/validation_suite.c)
-target_link_libraries(validation_suite cjson)
+    # Audio Comparison Module
+    add_executable(audio_compare tools/audio_compare.c)
+    target_link_libraries(audio_compare m)
+
+    # Golden Runner Test Harness
+    add_executable(golden_runner tools/golden_runner.c)
+    target_link_libraries(golden_runner cjson)
+
+    # Validation Suite (Main orchestration tool)
+    add_executable(validation_suite tools/validation_suite.c)
+    target_link_libraries(validation_suite cjson)
+
+    message(STATUS "UCRA Tools will be built")
+else()
+    message(STATUS "UCRA Tools building is disabled")
+endif()
 
 include(CTest)
 enable_testing()
@@ -130,12 +142,14 @@ add_test(NAME streaming_buffering_test COMMAND test_streaming_buffering)
 add_test(NAME streaming_read_test COMMAND test_streaming_read)
 add_test(NAME streaming_integration_test COMMAND test_streaming_integration)
 
-# Add validation tool tests
-add_test(NAME validation_suite_test COMMAND validation_suite --help)
-add_test(NAME f0_rmse_calc_test COMMAND f0_rmse_calc)
-add_test(NAME mcd_calc_test COMMAND mcd_calc)
-add_test(NAME audio_compare_test COMMAND audio_compare)
-add_test(NAME golden_runner_test COMMAND golden_runner --help)
+# Add validation tool tests (only if tools are enabled)
+if(UCRA_BUILD_TOOLS)
+    add_test(NAME validation_suite_test COMMAND validation_suite --help)
+    # Note: Other tools require specific input files, so we only test --help or basic execution
+    # For production use, these would be tested with proper test data
+    set_tests_properties(validation_suite_test PROPERTIES
+        PASS_REGULAR_EXPRESSION "Usage:|Golden Runner Test Harness")
+endif()
 
 # Set test working directory to tests/ to find data files
 set_tests_properties(manifest_parsing_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)

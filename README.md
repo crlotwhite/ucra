@@ -32,6 +32,36 @@ make
 sudo make install
 ```
 
+### 빌드 옵션
+
+UCRA는 다양한 빌드 옵션을 제공합니다:
+
+```bash
+# 기본 빌드 (라이브러리와 예제만)
+cmake ..
+
+# 예제 비활성화
+cmake -DUCRA_BUILD_EXAMPLES=OFF ..
+
+# 검증 및 테스트 도구 활성화 (기본값: OFF)
+cmake -DUCRA_BUILD_TOOLS=ON ..
+
+# 모든 옵션 함께 사용
+cmake -DUCRA_BUILD_EXAMPLES=ON -DUCRA_BUILD_TOOLS=ON ..
+```
+
+#### 검증 및 테스트 도구 (`UCRA_BUILD_TOOLS=ON`)
+
+tools 옵션을 활성화하면 다음 도구들이 빌드됩니다:
+
+- **validation_suite**: 종합 검증 도구
+- **f0_rmse_calc**: F0 RMSE 계산 유틸리티
+- **mcd_calc**: MCD(13) 계산 유틸리티
+- **audio_compare**: 오디오 파일 비교 도구
+- **golden_runner**: Golden 테스트 하네스
+
+자세한 내용은 [tools/README.md](tools/README.md)를 참조하세요.
+
 ### 테스트 실행
 
 ```bash
