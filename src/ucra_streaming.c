@@ -54,6 +54,9 @@ typedef struct UCRA_StreamState {
     uint64_t total_frames_generated; /* Total frames generated */
 } UCRA_StreamState;
 
+/* Forward declarations */
+static UCRA_Result refill_stream_buffer(UCRA_StreamState* state);
+
 /* Default buffer size: 4096 frames (about 93ms at 44.1kHz) */
 #define DEFAULT_BUFFER_SIZE_FRAMES 4096
 
