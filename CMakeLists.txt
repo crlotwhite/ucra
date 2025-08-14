@@ -98,6 +98,27 @@ target_link_libraries(test_streaming_integration ucra_impl)
 add_executable(resampler src/resampler_cli.c)
 target_link_libraries(resampler ucra_impl)
 
+# Validation and Testing Tools (Task 8)
+# F0 RMSE Calculation Utility
+add_executable(f0_rmse_calc src/f0_rmse_calc.c)
+target_link_libraries(f0_rmse_calc m)
+
+# MCD(13) Calculation Utility
+add_executable(mcd_calc src/mcd_calc.c)
+target_link_libraries(mcd_calc m)
+
+# Audio Comparison Module
+add_executable(audio_compare src/audio_compare.c)
+target_link_libraries(audio_compare m)
+
+# Golden Runner Test Harness
+add_executable(golden_runner src/golden_runner.c)
+target_link_libraries(golden_runner cjson)
+
+# Validation Suite (Main orchestration tool)
+add_executable(validation_suite src/validation_suite.c)
+target_link_libraries(validation_suite cjson)
+
 include(CTest)
 enable_testing()
 
@@ -108,6 +129,13 @@ add_test(NAME streaming_lifecycle_test COMMAND test_streaming_lifecycle)
 add_test(NAME streaming_buffering_test COMMAND test_streaming_buffering)
 add_test(NAME streaming_read_test COMMAND test_streaming_read)
 add_test(NAME streaming_integration_test COMMAND test_streaming_integration)
+
+# Add validation tool tests
+add_test(NAME validation_suite_test COMMAND validation_suite --help)
+add_test(NAME f0_rmse_calc_test COMMAND f0_rmse_calc)
+add_test(NAME mcd_calc_test COMMAND mcd_calc)
+add_test(NAME audio_compare_test COMMAND audio_compare)
+add_test(NAME golden_runner_test COMMAND golden_runner --help)
 
 # Set test working directory to tests/ to find data files
 set_tests_properties(manifest_parsing_test PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
