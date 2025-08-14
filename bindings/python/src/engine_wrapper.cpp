@@ -4,6 +4,7 @@
 #include <ucra/ucra.h>
 #include <stdexcept>
 #include <memory>
+#include <vector>
 
 namespace py = pybind11;
 
@@ -51,10 +52,9 @@ public:
         segment_.duration_sec = duration_sec;
         segment_.midi_note = static_cast<int16_t>(midi_note);
         segment_.velocity = static_cast<uint8_t>(velocity);
-        segment_.lyric = nullptr;  // We'll store the lyric separately for simplicity
-
-        // Store lyric (simplified - in real implementation would manage memory)
-        lyric_storage_ = lyric;
+    // Store lyric and set pointer into stable storage owned by this instance
+    lyric_storage_ = lyric;
+    segment_.lyric = lyric_storage_.c_str();
     }
 
     // Delete copy constructor and assignment operator
@@ -80,6 +80,8 @@ class PyRenderConfig {
 private:
     UCRA_RenderConfig config_;
     std::vector<std::unique_ptr<PyNoteSegment>> notes_;
+    // Raw contiguous array mirroring notes_ for passing to C API
+    std::vector<UCRA_NoteSegment> notes_raw_;
 
 public:
     PyRenderConfig(uint32_t sample_rate = 44100, uint32_t channels = 1, uint32_t block_size = 512, uint32_t flags = 0) {
@@ -105,11 +107,25 @@ public:
 
     // Note management
     void add_note(PyNoteSegment& note) {
-        // In a real implementation, this would need proper memory management
+        // Own a copy of note so its lyric storage stays alive
         notes_.push_back(std::make_unique<PyNoteSegment>(
             note.get_start_sec(), note.get_duration_sec(),
             note.get_midi_note(), note.get_velocity(), note.get_lyric()));
-        config_.note_count = static_cast<uint32_t>(notes_.size());
+
+        // Rebuild raw array and update config pointer
+        notes_raw_.clear();
+        notes_raw_.reserve(notes_.size());
+        for (const auto& np : notes_) {
+            UCRA_NoteSegment ns = *np->get_raw();
+            // Ensure lyric pointer points to the owned storage
+            // (np->get_raw()->lyric already points into np's storage)
+            ns.lyric = np->get_raw()->lyric;
+            ns.f0_override = nullptr;
+            ns.env_override = nullptr;
+            notes_raw_.push_back(ns);
+        }
+        config_.notes = notes_raw_.empty() ? nullptr : notes_raw_.data();
+        config_.note_count = static_cast<uint32_t>(notes_raw_.size());
     }
 
     size_t get_note_count() const { return config_.note_count; }
