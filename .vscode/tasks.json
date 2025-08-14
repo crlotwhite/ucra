@@ -74,6 +74,54 @@
 			"args": [],
 			"problemMatcher": [],
 			"group": "test"
+		},
+		{
+			"label": "Build with tools + bindings for 6.5",
+			"type": "shell",
+			"command": "cmake -S . -B build -DUCRA_BUILD_TOOLS=ON -DUCRA_BUILD_CPP_BINDINGS=ON -DUCRA_BUILD_PYTHON_BINDINGS=ON -DUCRA_BUILD_DOTNET_BINDINGS=ON -DUCRA_BUILD_RUST_BINDINGS=ON && cmake --build build -j",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild after .NET fix",
+			"type": "shell",
+			"command": "cmake --build build -j",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild .NET only",
+			"type": "shell",
+			"command": "cmake --build build -j --target ucra_dotnet_bindings",
+			"group": "build"
+		},
+		{
+			"label": "Run CTest wrappers integration",
+			"type": "shell",
+			"command": "ctest --test-dir build -j4 --output-on-failure",
+			"group": "test"
+		},
+		{
+			"label": "Rebuild after patches",
+			"type": "shell",
+			"command": "cmake --build build -j",
+			"group": "build"
+		},
+		{
+			"label": "Run CTest wrappers integration (retry)",
+			"type": "shell",
+			"command": "ctest --test-dir build -j4 --output-on-failure",
+			"group": "test"
+		},
+		{
+			"label": "Rebuild after adding cpp_emit_wav and CMake changes",
+			"type": "shell",
+			"command": "cmake --build build -j",
+			"group": "build"
+		},
+		{
+			"label": "Run CTest again (focus)",
+			"type": "shell",
+			"command": "ctest --test-dir build -j4 --output-on-failure -R \"wrappers_integration|compare_\"",
+			"group": "test"
 		}
 	]
 }

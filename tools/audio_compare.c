@@ -147,8 +147,9 @@ static int load_wav_file(const char* filename, AudioData* audio) {
         return -1;
     }
 
-    if (header.audio_format != 1) {
-        fprintf(stderr, "Error: Only PCM WAV files are supported\n");
+    /* Support PCM (1) and IEEE float (3) */
+    if (header.audio_format != 1 && header.audio_format != 3) {
+        fprintf(stderr, "Error: Only PCM (1) and IEEE float (3) WAV files are supported\n");
         fclose(file);
         return -1;
     }

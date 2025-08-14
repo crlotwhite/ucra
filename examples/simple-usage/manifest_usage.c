@@ -5,17 +5,18 @@
 int main() {
     printf("=== 매니페스트 사용 예제 ===\n");
 
-    // 1. 매니페스트 파일 로드
+    // 1. 매니페스트 파일 로드 (샘플 보이스뱅크 경로)
+    const char* manifest_path = "../../examples/sample-voicebank/resampler.json";
     UCRA_Manifest* manifest;
-    UCRA_Result result = ucra_manifest_load("../../voicebank/resampler.json", &manifest);
+    UCRA_Result result = ucra_manifest_load(manifest_path, &manifest);
 
     if (result != UCRA_SUCCESS) {
         printf("매니페스트 로드 실패: 오류 코드 %d\n", result);
-        printf("파일 경로를 확인하세요: ../../voicebank/resampler.json\n");
+        printf("파일 경로를 확인하세요: %s\n", manifest_path);
         return 1;
     }
 
-    printf("매니페스트 로드 성공: ../../voicebank/resampler.json\n");
+    printf("매니페스트 로드 성공: %s\n", manifest_path);
 
     // 2. 매니페스트 정보 출력
     printf("엔진명: %s\n", manifest->name ? manifest->name : "없음");

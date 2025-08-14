@@ -6,6 +6,9 @@
     <LangVersion>8.0</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
+  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+  <StartupObject>UCRA.NET.Sample.ProgramEmitWav</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>

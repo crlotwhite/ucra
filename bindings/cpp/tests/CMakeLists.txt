@@ -30,3 +30,7 @@ if(UCRA_WITH_WORLD)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 endif()
+
+# Minimal emitter matching golden WAV
+add_executable(cpp_emit_wav emit_wav.cpp)
+target_link_libraries(cpp_emit_wav PRIVATE ucra_cpp)

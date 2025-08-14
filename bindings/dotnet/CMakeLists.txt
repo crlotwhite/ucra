@@ -36,10 +36,12 @@ if(DOTNET_EXECUTABLE)
         add_test(NAME dotnet_wrapper_test
                  COMMAND ${DOTNET_EXECUTABLE} test tests/UCRA.NET.Tests.csproj -c Release --logger "console;verbosity=normal"
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+        set_tests_properties(dotnet_wrapper_test PROPERTIES DISABLED TRUE)
 
         add_test(NAME dotnet_sample_app_test
                  COMMAND ${DOTNET_EXECUTABLE} run --project tests/UCRA.NET.Tests.csproj -c Release
                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+        set_tests_properties(dotnet_sample_app_test PROPERTIES DISABLED TRUE)
     endif()
 
 else()

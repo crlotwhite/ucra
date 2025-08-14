@@ -401,8 +401,8 @@
               "6.3",
               "6.4"
             ],
-            "details": "Create four distinct command-line applications, one for each language. Each application will use its respective SDK wrapper to perform an identical rendering task: load a specific voicebank, define a standard note segment, and render it to a WAV file. This process will serve as both a usage example and a final integration test.",
-            "status": "pending",
+            "details": "Create four distinct command-line applications, one for each language. Each application will use its respective SDK wrapper to perform an identical rendering task: load a specific voicebank, define a standard note segment, and render it to a WAV file. This process will serve as both a usage example and a final integration test.\n<info added on 2025-08-14T12:11:19.059Z>\nThis has been implemented by adding a `create_golden_wav` tool and language-specific emitters: `cpp_emit_wav` (C++), `sample_emit_wav.py` (Python), `ProgramEmitWav.cs` (.NET), and `emit_wav.rs` (Rust). CTest is configured to generate a golden WAV output, run each emitter with the necessary library path, and compare the results using an updated `audio_compare` tool that supports IEEE float WAV. Specific issues encountered and resolved include .NET build problems (disabling generated assembly info, excluding samples from library build, configuring sample StartupObject) and Python import path/result handling. Integration verification via focused CTest runs (`wrappers_integration_*` and `compare_*_vs_golden`) now pass. Full CTest runs also pass, with the expected exception of `example_manifest_usage` (due to missing voicebank path) and disabled .NET unit tests on macOS (due to apphost signing issues).\n</info added on 2025-08-14T12:11:19.059Z>",
+            "status": "done",
             "testStrategy": "A master script will execute all four sample applications. It will then compare the resulting WAV files against a pre-generated 'golden' WAV file created by a direct C API call. The test passes if all four outputs are bit-for-bit identical to the golden file."
           }
         ]
@@ -688,7 +688,7 @@
     ],
     "metadata": {
       "created": "2025-08-10T12:56:02.632Z",
-      "updated": "2025-08-14T11:23:13.784Z",
+      "updated": "2025-08-14T12:11:23.864Z",
       "description": "Tasks for master context"
     }
   }

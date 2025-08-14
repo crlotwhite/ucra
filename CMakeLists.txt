@@ -147,6 +147,10 @@ if(UCRA_BUILD_TOOLS)
     add_executable(golden_runner tools/golden_runner.c)
     target_link_libraries(golden_runner cjson)
 
+    # Golden WAV generator (direct C API)
+    add_executable(create_golden_wav tools/create_golden_wav.c)
+    target_link_libraries(create_golden_wav ucra_impl)
+
     # Validation Suite (Main orchestration tool)
     add_executable(validation_suite tools/validation_suite.c)
     target_link_libraries(validation_suite cjson)
@@ -166,6 +170,70 @@ add_test(NAME streaming_lifecycle_test COMMAND test_streaming_lifecycle)
 add_test(NAME streaming_buffering_test COMMAND test_streaming_buffering)
 add_test(NAME streaming_read_test COMMAND test_streaming_read)
 add_test(NAME streaming_integration_test COMMAND test_streaming_integration)
+
+# ---------------------------------------------------------------
+# Cross-language wrapper integration test (Task 6.5)
+# Generates golden WAV via C, then runs C++/.NET/Python/Rust samples
+# to produce WAVs and compares them using audio_compare.
+# ---------------------------------------------------------------
+if(UCRA_BUILD_TOOLS)
+    # Generate golden WAV in build directory
+    add_test(NAME wrappers_integration_generate_golden
+             COMMAND create_golden_wav
+             WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+    # Run C++ minimal emitter app (emits cpp_sample_output.wav)
+    add_test(NAME wrappers_integration_run_cpp
+             COMMAND cpp_emit_wav
+             WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
+    # Run Python sample (emits python_sample_output.wav)
+    find_package(Python COMPONENTS Interpreter QUIET)
+    if(Python_Interpreter_FOUND)
+        add_test(NAME wrappers_integration_run_python
+                 COMMAND ${CMAKE_COMMAND} -E env DYLD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:$ENV{DYLD_LIBRARY_PATH}
+                         ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/bindings/python/examples/sample_emit_wav.py
+                 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    endif()
+
+    # Run .NET sample (emits dotnet_sample_output.wav)
+    find_program(DOTNET_EXECUTABLE dotnet)
+    if(DOTNET_EXECUTABLE)
+        add_test(NAME wrappers_integration_run_dotnet
+                 COMMAND ${CMAKE_COMMAND} -E env DYLD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:$ENV{DYLD_LIBRARY_PATH}
+                         ${DOTNET_EXECUTABLE} run --project ${CMAKE_SOURCE_DIR}/bindings/dotnet/samples/UCRA.NET.Sample.csproj -c Release
+                 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    endif()
+
+    # Run Rust sample (emits rust_sample_output.wav)
+    find_program(CARGO_EXECUTABLE cargo)
+    if(CARGO_EXECUTABLE)
+        add_test(NAME wrappers_integration_run_rust
+                 COMMAND ${CMAKE_COMMAND} -E env UCRA_LIB_DIR=${CMAKE_BINARY_DIR} DYLD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:$ENV{DYLD_LIBRARY_PATH}
+                         ${CARGO_EXECUTABLE} run --manifest-path ${CMAKE_SOURCE_DIR}/bindings/rust/ucra/Cargo.toml --quiet --example emit_wav
+                 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    endif()
+
+    # Compare outputs against golden
+    add_test(NAME compare_cpp_vs_golden
+             COMMAND audio_compare golden_output.wav cpp_sample_output.wav
+             WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    if(Python_Interpreter_FOUND)
+        add_test(NAME compare_python_vs_golden
+                 COMMAND audio_compare golden_output.wav python_sample_output.wav
+                 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    endif()
+    if(DOTNET_EXECUTABLE)
+        add_test(NAME compare_dotnet_vs_golden
+                 COMMAND audio_compare golden_output.wav dotnet_sample_output.wav
+                 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    endif()
+    if(CARGO_EXECUTABLE)
+        add_test(NAME compare_rust_vs_golden
+                 COMMAND audio_compare golden_output.wav rust_sample_output.wav
+                 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    endif()
+endif()
 
 # Add validation tool tests (only if tools are enabled)
 if(UCRA_BUILD_TOOLS)
@@ -215,6 +283,10 @@ if(UCRA_BUILD_EXAMPLES)
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/simple-usage)
     add_example_executable(manifest_usage manifest_usage.c
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/simple-usage)
+    # If sample voicebank is not present, disable the manifest_usage test to avoid false failures
+    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples/sample-voicebank/resampler.json)
+        set_tests_properties(example_manifest_usage PROPERTIES DISABLED TRUE)
+    endif()
     add_example_executable(simple_render simple_render.c
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/simple-usage)
     add_example_executable(simple_usage simple_usage.c
