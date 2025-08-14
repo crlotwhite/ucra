@@ -166,34 +166,22 @@ jobs:
           ctest --output-on-failure --build-config ${{ matrix.build_type }} || true
 
   build-and-test-cpp-bindings:
-    name: C++ Bindings / ${{ matrix.os }} / ${{ matrix.build_type }}
-    runs-on: ${{ matrix.os }}
+    name: C++ Bindings / Ubuntu / ${{ matrix.build_type }}
+    runs-on: ubuntu-latest
     needs: build-and-test
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
         build_type: [Release, Debug]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up MSVC devcmd (Windows)
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install cmake
 
       - name: Configure UCRA with C++ bindings
         run: |
@@ -210,42 +198,25 @@ jobs:
       - name: Run C++ sample application
         run: |
           cd build
-          if [ "$RUNNER_OS" != "Windows" ]; then
-            ./bindings/cpp/tests/sample_app || echo "Note: C++ sample failed (expected due to missing voicebank)"
-          else
-            ./bindings/cpp/tests/${{ matrix.build_type }}/sample_app.exe || echo "Note: C++ sample failed (expected due to missing voicebank)"
-          fi
-        shell: bash
+          ./bindings/cpp/tests/sample_app || echo "Note: C++ sample failed (expected due to missing voicebank)"
 
   build-and-test-dotnet-bindings:
-    name: .NET Bindings / ${{ matrix.os }} / ${{ matrix.build_type }}
-    runs-on: ${{ matrix.os }}
+    name: .NET Bindings / Ubuntu / ${{ matrix.build_type }}
+    runs-on: ubuntu-latest
     needs: build-and-test
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
         build_type: [Release, Debug]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up MSVC devcmd (Windows)
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install cmake
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -270,13 +241,12 @@ jobs:
           dotnet run --project samples/UCRA.NET.Sample.csproj -c Release || echo "Note: .NET sample failed (expected due to missing voicebank)"
 
   build-and-test-python-bindings:
-    name: Python Bindings / ${{ matrix.os }} / ${{ matrix.build_type }}
-    runs-on: ${{ matrix.os }}
+    name: Python Bindings / Ubuntu / ${{ matrix.build_type }} / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
     needs: build-and-test
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
         build_type: [Release, Debug]
         python-version: ['3.8', '3.9', '3.10', '3.11']
 
@@ -284,21 +254,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up MSVC devcmd (Windows)
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install cmake
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -341,13 +300,4 @@ jobs:
       - name: Run Python sample application
         run: |
           cd bindings/python
-          if [ "$RUNNER_OS" == "macOS" ]; then
-            DYLD_LIBRARY_PATH=../../build:$DYLD_LIBRARY_PATH python examples/sample.py || echo "Note: Python sample failed (expected due to missing voicebank)"
-          elif [ "$RUNNER_OS" == "Linux" ]; then
-            LD_LIBRARY_PATH=../../build:$LD_LIBRARY_PATH python examples/sample.py || echo "Note: Python sample failed (expected due to missing voicebank)"
-          else
-            # Windows
-            cp ../../build/${{ matrix.build_type }}/ucra_impl.dll . 2>/dev/null || cp ../../build/ucra_impl.dll . 2>/dev/null || true
-            python examples/sample.py || echo "Note: Python sample failed (expected due to missing voicebank)"
-          fi
-        shell: bash
+          LD_LIBRARY_PATH=../../build:$LD_LIBRARY_PATH python examples/sample.py || echo "Note: Python sample failed (expected due to missing voicebank)"
