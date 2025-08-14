@@ -353,7 +353,7 @@
           1,
           5
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -419,14 +419,14 @@
           5,
           6
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
             "title": "Analyze and Document OpenUtau Resampler Manifest Schema",
             "description": "Research and formally document the structure and all relevant fields of an OpenUtau resampler manifest file (typically `resampler.yaml`). This documentation will serve as the target specification for the generator.",
             "dependencies": [],
-            "details": "Create a schema definition or detailed document outlining the manifest structure. This must include how to define the resampler's name, executable path, supported flags (options) with their types (int, float, string, bool), ranges, and default values, and other capabilities like streaming support.",
+            "details": "Create a schema definition or detailed document outlining the manifest structure. This must include how to define the resampler's name, executable path, supported flags (options) with their types (int, float, string, bool), ranges, and default values, and other capabilities like streaming support.\n<info added on 2025-08-14T14:33:06.570Z>\nDocumented the OpenUtau resampler manifest schema mapping in `docs/openutau-manifest.md`, covering fields such as name, version, vendor, executable path, and flag mapping for float, int, bool, and enum types. Implemented the manifest generator CLI tool `tools/ucra_manifest_gen.c`, integrated it into CMake, and added a CTest using a sample voicebank. Verified successful build and test in a tools-only configuration.\n</info added on 2025-08-14T14:33:06.570Z>",
             "status": "pending",
             "testStrategy": "Validate the documented schema by comparing it against existing manifests for popular OpenUtau resamplers like moresampler, worldline, and the default wavtool."
           },
@@ -457,7 +457,7 @@
             "title": "Develop .NET Adapter for UCRA Streaming API",
             "description": "Create a .NET class library that serves as a high-level adapter for OpenUtau, using P/Invoke to call the UCRA C API's streaming functions.",
             "dependencies": [],
-            "details": "This adapter will wrap the `ucra_stream_open`, `ucra_stream_read`, and `ucra_stream_close` functions. It must handle the marshalling of complex data structures like `UCRA_RenderConfig` and `UCRA_NoteSegment` from C# objects to unmanaged memory pointers, ensuring type safety and correct memory management. This component is a specific implementation or consumer of the general .NET wrapper from Task 6.",
+            "details": "This adapter will wrap the `ucra_stream_open`, `ucra_stream_read`, and `ucra_stream_close` functions. It must handle the marshalling of complex data structures like `UCRA_RenderConfig` and `UCRA_NoteSegment` from C# objects to unmanaged memory pointers, ensuring type safety and correct memory management. This component is a specific implementation or consumer of the general .NET wrapper from Task 6.\n<info added on 2025-08-14T14:41:52.641Z>\nImplemented initial .NET streaming adapter in `Streaming.cs` with a `StreamSession` wrapper, utilizing P/Invoke for `ucra_stream_open`, `ucra_stream_read`, and `ucra_stream_close`. A provider callback mechanism is in place to supply `UCRA_RenderConfig` and `UCRA_NoteSegment` data. NUnit tests (`StreamingTests.cs`) have been added to exercise the open-read-close flow, with tolerance for `NotSupported` results. Usage has been documented in `bindings/dotnet/README.md`. Note: Tests are currently dormant due to the absence of the .NET SDK on the current machine.\n</info added on 2025-08-14T14:41:52.641Z>",
             "status": "pending",
             "testStrategy": "Create a .NET unit test project that uses the adapter to call the underlying UCRA streaming API (linked with the reference engine). Verify that audio data can be successfully streamed and that all data structures are marshalled without corruption or memory leaks."
           },
@@ -688,7 +688,7 @@
     ],
     "metadata": {
       "created": "2025-08-10T12:56:02.632Z",
-      "updated": "2025-08-14T12:11:23.864Z",
+      "updated": "2025-08-14T14:18:22.819Z",
       "description": "Tasks for master context"
     }
   }

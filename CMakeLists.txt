@@ -155,7 +155,18 @@ if(UCRA_BUILD_TOOLS)
     add_executable(validation_suite tools/validation_suite.c)
     target_link_libraries(validation_suite cjson)
 
+    # OpenUtau manifest generator
+    add_executable(ucra_manifest_gen tools/ucra_manifest_gen.c)
+    target_link_libraries(ucra_manifest_gen cjson)
+
     message(STATUS "UCRA Tools will be built")
+
+    # Simple test for manifest generator using sample voicebank if present
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples/sample-voicebank/resampler.json)
+    add_test(NAME tools_ucra_manifest_gen_test
+         COMMAND ucra_manifest_gen --input ${CMAKE_CURRENT_SOURCE_DIR}/examples/sample-voicebank/resampler.json --output ${CMAKE_BINARY_DIR}/openutau_resampler.yaml --exe resampler)
+    set_tests_properties(tools_ucra_manifest_gen_test PROPERTIES DEPENDS wrappers_integration_generate_golden)
+    endif()
 else()
     message(STATUS "UCRA Tools building is disabled")
 endif()
