@@ -198,6 +198,9 @@ jobs:
           # Copy sample voicebank to test working directory
           mkdir -p build/voicebank
           cp -r examples/sample-voicebank/* build/voicebank/
+          # Also copy to the test execution directory
+          mkdir -p bindings/cpp/tests/voicebank
+          cp -r examples/sample-voicebank/* bindings/cpp/tests/voicebank/
           ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "cpp"
 
       - name: Run C++ sample application with voicebank
@@ -233,7 +236,7 @@ jobs:
         env:
           CI: true
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=OFF -DUCRA_BUILD_DOTNET_BINDINGS=ON
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=OFF -DUCRA_BUILD_DOTNET_BINDINGS=ON -DBUILD_SHARED_LIBS=ON
 
       - name: Build UCRA and .NET bindings
         run: |
@@ -298,7 +301,7 @@ jobs:
         env:
           CI: true
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=OFF -DUCRA_BUILD_PYTHON_BINDINGS=ON
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=OFF -DUCRA_BUILD_PYTHON_BINDINGS=ON -DBUILD_SHARED_LIBS=ON
 
       - name: Build UCRA library
         run: |

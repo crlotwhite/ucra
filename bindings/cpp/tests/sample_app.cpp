@@ -57,12 +57,24 @@ int main() {
 
         // Check if sample voicebank is available
         std::ifstream voicebank_check("voicebank/resampler.json");
+        if (!voicebank_check.good()) {
+            // Try CI build directory path
+            voicebank_check.close();
+            voicebank_check.open("../../voicebank/resampler.json");
+        }
         if (voicebank_check.good()) {
             std::cout << "   Found sample voicebank, using it...\n";
-            engine_options["voicebank_path"] = "voicebank";
+            // Determine correct path
+            std::ifstream test_local("voicebank/resampler.json");
+            if (test_local.good()) {
+                engine_options["voicebank_path"] = "voicebank";
+            } else {
+                engine_options["voicebank_path"] = "../../voicebank";
+            }
+            test_local.close();
         } else {
-            std::cout << "   No voicebank found, using sample mode...\n";
-            engine_options["sample_mode"] = "true"; // Use sample mode for testing
+            std::cout << "   No voicebank found, trying sample mode...\n";
+            // Try without any options first, since sample mode might not be supported
         }
 
         ucra::Engine engine(engine_options);
