@@ -46,7 +46,7 @@ target_link_libraries(ucra_py PRIVATE ucra_impl)
 set_target_properties(ucra_py PROPERTIES
     OUTPUT_NAME "ucra"
     PREFIX ""
-    SUFFIX "${Python_SOABI}${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    SUFFIX ".${Python_SOABI}${CMAKE_SHARED_LIBRARY_SUFFIX}"
 )
 
 # Ensure we find the UCRA shared library if built in top-level 'build'

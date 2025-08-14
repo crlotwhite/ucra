@@ -201,48 +201,60 @@ if(UCRA_BUILD_TOOLS)
     # Run Python sample (emits python_sample_output.wav)
     find_package(Python COMPONENTS Interpreter QUIET)
     if(Python_Interpreter_FOUND)
-        add_test(NAME wrappers_integration_run_python
-                 COMMAND ${CMAKE_COMMAND} -E env DYLD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:$ENV{DYLD_LIBRARY_PATH}
-                         ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/bindings/python/examples/sample_emit_wav.py
-                 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    add_test(NAME wrappers_integration_run_python
+         COMMAND ${CMAKE_COMMAND} -E env
+             LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:$ENV{LD_LIBRARY_PATH}
+             DYLD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:$ENV{DYLD_LIBRARY_PATH}
+             PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}
+             ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/bindings/python/examples/sample_emit_wav.py
+         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
     endif()
 
     # Run .NET sample (emits dotnet_sample_output.wav)
     find_program(DOTNET_EXECUTABLE dotnet)
     if(DOTNET_EXECUTABLE)
-        add_test(NAME wrappers_integration_run_dotnet
-                 COMMAND ${CMAKE_COMMAND} -E env DYLD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:$ENV{DYLD_LIBRARY_PATH}
-                         ${DOTNET_EXECUTABLE} run --project ${CMAKE_SOURCE_DIR}/bindings/dotnet/samples/UCRA.NET.Sample.csproj -c Release
-                 WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    add_test(NAME wrappers_integration_run_dotnet
+         COMMAND ${CMAKE_COMMAND} -E env
+             LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:$ENV{LD_LIBRARY_PATH}
+             DYLD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:$ENV{DYLD_LIBRARY_PATH}
+             ${DOTNET_EXECUTABLE} run --project ${CMAKE_SOURCE_DIR}/bindings/dotnet/samples/UCRA.NET.Sample.csproj -c Release
+         WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
     endif()
 
-    # Run Rust sample (emits rust_sample_output.wav)
+    # Run Rust sample (emits rust_sample_output.wav) only if cargo and libclang are available
     find_program(CARGO_EXECUTABLE cargo)
-    if(CARGO_EXECUTABLE)
+    find_library(LIBCLANG_LIBRARY NAMES libclang clang)
+    if(CARGO_EXECUTABLE AND LIBCLANG_LIBRARY)
         add_test(NAME wrappers_integration_run_rust
                  COMMAND ${CMAKE_COMMAND} -E env UCRA_LIB_DIR=${CMAKE_BINARY_DIR} DYLD_LIBRARY_PATH=${CMAKE_BINARY_DIR}:$ENV{DYLD_LIBRARY_PATH}
                          ${CARGO_EXECUTABLE} run --manifest-path ${CMAKE_SOURCE_DIR}/bindings/rust/ucra/Cargo.toml --quiet --example emit_wav
                  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    else()
+        message(STATUS "Skipping Rust wrappers integration tests (cargo or libclang not available)")
     endif()
 
     # Compare outputs against golden
     add_test(NAME compare_cpp_vs_golden
              COMMAND audio_compare golden_output.wav cpp_sample_output.wav
              WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    set_tests_properties(compare_cpp_vs_golden PROPERTIES DEPENDS "wrappers_integration_generate_golden;wrappers_integration_run_cpp")
     if(Python_Interpreter_FOUND)
         add_test(NAME compare_python_vs_golden
                  COMMAND audio_compare golden_output.wav python_sample_output.wav
                  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+        set_tests_properties(compare_python_vs_golden PROPERTIES DEPENDS "wrappers_integration_generate_golden;wrappers_integration_run_python")
     endif()
     if(DOTNET_EXECUTABLE)
         add_test(NAME compare_dotnet_vs_golden
                  COMMAND audio_compare golden_output.wav dotnet_sample_output.wav
                  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+        set_tests_properties(compare_dotnet_vs_golden PROPERTIES DEPENDS "wrappers_integration_generate_golden;wrappers_integration_run_dotnet")
     endif()
-    if(CARGO_EXECUTABLE)
+    if(CARGO_EXECUTABLE AND LIBCLANG_LIBRARY)
         add_test(NAME compare_rust_vs_golden
                  COMMAND audio_compare golden_output.wav rust_sample_output.wav
                  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+        set_tests_properties(compare_rust_vs_golden PROPERTIES DEPENDS "wrappers_integration_generate_golden;wrappers_integration_run_rust")
     endif()
 endif()
 

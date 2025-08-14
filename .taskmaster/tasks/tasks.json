@@ -458,7 +458,7 @@
             "description": "Create a .NET class library that serves as a high-level adapter for OpenUtau, using P/Invoke to call the UCRA C API's streaming functions.",
             "dependencies": [],
             "details": "This adapter will wrap the `ucra_stream_open`, `ucra_stream_read`, and `ucra_stream_close` functions. It must handle the marshalling of complex data structures like `UCRA_RenderConfig` and `UCRA_NoteSegment` from C# objects to unmanaged memory pointers, ensuring type safety and correct memory management. This component is a specific implementation or consumer of the general .NET wrapper from Task 6.\n<info added on 2025-08-14T14:41:52.641Z>\nImplemented initial .NET streaming adapter in `Streaming.cs` with a `StreamSession` wrapper, utilizing P/Invoke for `ucra_stream_open`, `ucra_stream_read`, and `ucra_stream_close`. A provider callback mechanism is in place to supply `UCRA_RenderConfig` and `UCRA_NoteSegment` data. NUnit tests (`StreamingTests.cs`) have been added to exercise the open-read-close flow, with tolerance for `NotSupported` results. Usage has been documented in `bindings/dotnet/README.md`. Note: Tests are currently dormant due to the absence of the .NET SDK on the current machine.\n</info added on 2025-08-14T14:41:52.641Z>",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": "Create a .NET unit test project that uses the adapter to call the underlying UCRA streaming API (linked with the reference engine). Verify that audio data can be successfully streamed and that all data structures are marshalled without corruption or memory leaks."
           },
           {
@@ -688,7 +688,7 @@
     ],
     "metadata": {
       "created": "2025-08-10T12:56:02.632Z",
-      "updated": "2025-08-14T14:18:22.819Z",
+      "updated": "2025-08-14T14:56:27.554Z",
       "description": "Tasks for master context"
     }
   }
