@@ -257,6 +257,8 @@ jobs:
           mkdir -p bindings/dotnet/voicebank
           cp -r examples/sample-voicebank/* bindings/dotnet/voicebank/
           # Copy shared library to .NET output directory to help with loading
+          mkdir -p bindings/dotnet/bin/Release/netstandard2.0/
+          mkdir -p bindings/dotnet/tests/bin/Release/net6.0/
           cp build/libucra_impl.so bindings/dotnet/bin/Release/netstandard2.0/ || echo "Failed to copy library"
           cp build/libucra_impl.so bindings/dotnet/tests/bin/Release/net6.0/ || echo "Failed to copy library to test dir"
           ctest --test-dir build --output-on-failure --build-config ${{ matrix.build_type }} -R "dotnet"
