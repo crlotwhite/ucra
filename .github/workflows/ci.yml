@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, master ]
 
@@ -65,7 +67,7 @@ jobs:
             build/ucra_impl.lib
             build/cjson.lib
             build/resampler.exe
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: warn
 
   build-and-test-examples:

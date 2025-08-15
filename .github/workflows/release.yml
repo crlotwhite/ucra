@@ -1,4 +1,4 @@
-name: Build, Package and Create Release
+name: Build, Package and Create Release (Multi-OS)
 
 on:
   push:
@@ -12,67 +12,228 @@ on:
 
 jobs:
   build-and-package:
-    runs-on: windows-latest
+    name: Package ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     env:
       BUILD_DIR: build
       DIST_DIR: dist
+      BUILD_TYPE: Release
+      TAG_NAME: ${{ github.ref_name || github.event.inputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure CMake
+      - name: Set up MSVC devcmd (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential zip
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install cmake gnu-tar
+
+      - name: Try to download artifacts from CI
+        id: dl
+        uses: dawidd6/action-download-artifact@v3
+        continue-on-error: true
+        with:
+          workflow: ci.yml
+          workflow_conclusion: success
+          name: ucra-build-${{ matrix.os }}-${{ env.BUILD_TYPE }}
+          path: ${{ github.workspace }}/ci_artifacts
+          commit: ${{ github.sha }}
+          if_no_artifact_found: warn
+
+      - name: Detect artifact presence
+        id: detect
+        shell: bash
+        run: |
+          if [ -d "${{ github.workspace }}/ci_artifacts" ] && compgen -G "${{ github.workspace }}/ci_artifacts/*" > /dev/null; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: List downloaded artifacts
+        if: steps.detect.outputs.found == 'true'
+        run: |
+          echo "Artifacts downloaded:"
+          ls -R ${{ github.workspace }}/ci_artifacts || true
+
+      - name: Configure CMake (fallback build)
+        if: steps.detect.outputs.found != 'true'
+        run: |
+          cmake -S . -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=ON -DBUILD_SHARED_LIBS=ON
+
+      - name: Build (fallback)
+        if: steps.detect.outputs.found != 'true'
+        run: cmake --build ${BUILD_DIR} --config ${BUILD_TYPE} --parallel
+
+      - name: Run CTest (fallback)
+        if: steps.detect.outputs.found != 'true'
+        run: |
+          ctest --test-dir ${BUILD_DIR} --output-on-failure --build-config ${BUILD_TYPE} -E "(cpp|dotnet|python|rust)_"
+
+      - name: Prepare dist tree
+        run: |
+          rm -rf "${DIST_DIR}"
+          mkdir -p "${DIST_DIR}/sdk/include"
+          mkdir -p "${DIST_DIR}/engines"
+          mkdir -p "${DIST_DIR}/tools"
+          cp include/ucra/ucra.h "${DIST_DIR}/sdk/include/" || true
+          # Copy docs
+          mkdir -p "${DIST_DIR}/docs"
+          cp -R docs/* "${DIST_DIR}/docs/" || true
+        shell: bash
+
+      - name: Collect binaries (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          set -e
+          SRC_DIR="${{ github.workspace }}/ci_artifacts"
+          if [ -d "$SRC_DIR" ] && compgen -G "$SRC_DIR/*" > /dev/null; then
+            echo "Using CI artifacts"
+            # paths may include build/ prefix; try both
+            for f in \
+              "$SRC_DIR/build/libucra_impl.a" "$SRC_DIR/libucra_impl.a" \
+              "$SRC_DIR/build/libcjson.a" "$SRC_DIR/libcjson.a"; do
+              [ -f "$f" ] && cp -n "$f" "${DIST_DIR}/engines/" || true
+            done
+            for exe in "$SRC_DIR/build/resampler" "$SRC_DIR/resampler"; do
+              [ -f "$exe" ] && cp -n "$exe" "${DIST_DIR}/tools/" || true
+            done
+          else
+            echo "Using local build outputs"
+            cp -n ${BUILD_DIR}/libucra_impl.a "${DIST_DIR}/engines/" 2>/dev/null || true
+            cp -n ${BUILD_DIR}/libcjson.a "${DIST_DIR}/engines/" 2>/dev/null || true
+            cp -n ${BUILD_DIR}/resampler "${DIST_DIR}/tools/" 2>/dev/null || true
+          fi
+        shell: bash
+
+      - name: Ensure tools present (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          if [ ! -f "${DIST_DIR}/tools/resampler" ]; then
+            echo "resampler not found in artifacts; building tools..."
+            cmake -S . -B build-tools -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=ON
+            cmake --build build-tools --config ${BUILD_TYPE} --parallel --target resampler || cmake --build build-tools --config ${BUILD_TYPE} --parallel
+            cp -n build-tools/resampler "${DIST_DIR}/tools/" 2>/dev/null || true
+          fi
+        shell: bash
+
+      - name: Collect binaries (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          cmake -S . -B $env:BUILD_DIR -DCMAKE_BUILD_TYPE=Release -DUCRA_BUILD_RUST_BINDINGS=ON
+          $src = Join-Path $env:GITHUB_WORKSPACE 'ci_artifacts'
+          if (Test-Path $src) {
+            Write-Host "Using CI artifacts"
+            New-Item -ItemType Directory -Path "$env:DIST_DIR\engines" -Force | Out-Null
+            New-Item -ItemType Directory -Path "$env:DIST_DIR\tools" -Force | Out-Null
+            $candidatesLib = @(
+              "$src\build\Release\ucra_impl.lib",
+              "$src\build\ucra_impl.lib",
+              "$src\ucra_impl.lib"
+            )
+            $candidatesCjson = @(
+              "$src\build\Release\cjson.lib",
+              "$src\build\cjson.lib",
+              "$src\cjson.lib"
+            )
+            $candidatesExe = @(
+              "$src\build\Release\resampler.exe",
+              "$src\build\resampler.exe",
+              "$src\resampler.exe"
+            )
+            foreach ($f in $candidatesLib) { if (Test-Path $f) { Copy-Item $f "$env:DIST_DIR\engines\" -ErrorAction SilentlyContinue; break } }
+            foreach ($f in $candidatesCjson) { if (Test-Path $f) { Copy-Item $f "$env:DIST_DIR\engines\" -ErrorAction SilentlyContinue; break } }
+            foreach ($f in $candidatesExe) { if (Test-Path $f) { Copy-Item $f "$env:DIST_DIR\tools\" -ErrorAction SilentlyContinue; break } }
+          } else {
+            Write-Host "Using local build outputs"
+            Copy-Item "$env:BUILD_DIR\$env:BUILD_TYPE\ucra_impl.lib" "$env:DIST_DIR\engines\" -ErrorAction SilentlyContinue
+            Copy-Item "$env:BUILD_DIR\$env:BUILD_TYPE\cjson.lib" "$env:DIST_DIR\engines\" -ErrorAction SilentlyContinue
+            Copy-Item "$env:BUILD_DIR\$env:BUILD_TYPE\resampler.exe" "$env:DIST_DIR\tools\" -ErrorAction SilentlyContinue
+          }
 
-      - name: Build (Release)
-        shell: pwsh
-        run: cmake --build $env:BUILD_DIR -j
-
-      - name: Run CTest (Release)
-        shell: pwsh
-        run: ctest --test-dir $env:BUILD_DIR -C Release -j4 --output-on-failure
-
-      - name: Assemble dist and create zip
-        id: assemble
+      - name: Ensure tools present (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          if (Test-Path $env:DIST_DIR) { Remove-Item -Recurse -Force $env:DIST_DIR }
-          New-Item -ItemType Directory -Path "$env:DIST_DIR\sdk\include" -Force | Out-Null
-          Copy-Item "include\ucra\ucra.h" "$env:DIST_DIR\sdk\include\ucra.h"
-          New-Item -ItemType Directory -Path "$env:DIST_DIR\engines" -Force | Out-Null
-          Copy-Item "$env:BUILD_DIR\Release\ucra_impl.lib" "$env:DIST_DIR\engines\" -ErrorAction SilentlyContinue
-          Copy-Item "$env:BUILD_DIR\Release\ucra_impl_shared.dll" "$env:DIST_DIR\engines\" -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Path "$env:DIST_DIR\tools" -Force | Out-Null
-          Copy-Item "$env:BUILD_DIR\Release\resampler.exe" "$env:DIST_DIR\tools\" -ErrorAction SilentlyContinue
-          Copy-Item "$env:BUILD_DIR\Release\ucra_manifest_gen.exe" "$env:DIST_DIR\tools\" -ErrorAction SilentlyContinue
-          Copy-Item "docs" "$env:DIST_DIR\docs" -Recurse -Force
-          $zipName = "ucra-release-$($env:GITHUB_RUN_NUMBER).zip"
-          Compress-Archive -Path "$env:DIST_DIR\*" -DestinationPath $zipName -Force
-          Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append -InputObject "zip=$zipName"
+          $toolPath = Join-Path $env:DIST_DIR 'tools\resampler.exe'
+          if (-not (Test-Path $toolPath)) {
+            Write-Host "resampler.exe not found in artifacts; building tools..."
+            cmake -S . -B $env:BUILD_DIR -DCMAKE_BUILD_TYPE=$env:BUILD_TYPE -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=ON
+            cmake --build $env:BUILD_DIR --config $env:BUILD_TYPE --parallel --target resampler
+            Copy-Item "$env:BUILD_DIR\$env:BUILD_TYPE\resampler.exe" "$env:DIST_DIR\tools\" -ErrorAction SilentlyContinue
+          }
 
-      - name: Upload artifact (job retention)
+      - name: Archive package (Linux/macOS)
+        if: runner.os != 'Windows'
+        id: pack_unix
+        run: |
+          PKG_NAME="ucra-${TAG_NAME}-${RUNNER_OS}.tar.gz"
+          tar -czf "$PKG_NAME" -C "${DIST_DIR}" .
+          echo "pkg=$PKG_NAME" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Archive package (Windows)
+        if: runner.os == 'Windows'
+        id: pack_win
+        shell: pwsh
+        run: |
+          $tag = "$env:TAG_NAME"
+          if ([string]::IsNullOrWhiteSpace($tag)) { $tag = "${{ github.sha }}" }
+          $pkg = "ucra-$tag-Windows.zip"
+          Compress-Archive -Path "$env:DIST_DIR/*" -DestinationPath $pkg -Force
+          "pkg=$pkg" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Upload package as artifact (for debugging, Unix)
+        if: runner.os != 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ucra-release-zip
-          path: ${{ steps.assemble.outputs.zip }}
+          name: ucra-package-${{ matrix.os }}
+          path: ${{ steps.pack_unix.outputs.pkg }}
+          retention-days: 7
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Upload package as artifact (for debugging, Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ucra-package-${{ matrix.os }}
+          path: ${{ steps.pack_win.outputs.pkg }}
+          retention-days: 7
+
+      - name: Upload to GitHub Release (Unix)
+        if: runner.os != 'Windows'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.pack_unix.outputs.pkg }}
+          tag_name: ${{ env.TAG_NAME }}
+          name: Release ${{ env.TAG_NAME }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name || github.event.inputs.tag }}
-          release_name: Release ${{ github.ref_name || github.event.inputs.tag }}
-          body: "Automated release created by CI: build + package artifacts"
 
-      - name: Upload release asset
-        uses: actions/upload-release-asset@v1
+      - name: Upload to GitHub Release (Windows)
+        if: runner.os == 'Windows'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.pack_win.outputs.pkg }}
+          tag_name: ${{ env.TAG_NAME }}
+          name: Release ${{ env.TAG_NAME }}
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.assemble.outputs.zip }}
-          asset_name: ${{ steps.assemble.outputs.zip }}
-          asset_content_type: application/zip
