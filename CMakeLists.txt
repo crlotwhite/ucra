@@ -128,6 +128,56 @@ add_executable(resampler src/resampler_cli.c)
 target_link_libraries(resampler ucra_impl)
 
 # ===================================================================
+# Documentation Generation (Doxygen)
+# ===================================================================
+
+# Option to build documentation
+option(UCRA_BUILD_DOCS "Build API documentation with Doxygen" OFF)
+
+# Find Doxygen package
+find_package(Doxygen QUIET)
+
+if(DOXYGEN_FOUND AND UCRA_BUILD_DOCS)
+    message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
+
+    # Set input and output files
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/docs/doxygen)
+
+    # Request to configure the file
+    configure_file(${DOXYGEN_IN} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+
+    # Create the documentation target
+    add_custom_target(docs
+        COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM
+    )
+
+    # Create output directory if it doesn't exist
+    file(MAKE_DIRECTORY ${DOXYGEN_OUT})
+
+    message(STATUS "Documentation target 'docs' available. Run 'make docs' to build.")
+
+    # Add docs to the package_dist target if it exists
+    if(TARGET package_dist)
+        add_dependencies(package_dist docs)
+        # Copy generated docs to dist directory
+        add_custom_command(TARGET package_dist POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${DOXYGEN_OUT}/html
+                    ${CMAKE_BINARY_DIR}/dist/docs/api
+            COMMENT "Copying generated API documentation to dist/"
+        )
+    endif()
+
+elseif(UCRA_BUILD_DOCS AND NOT DOXYGEN_FOUND)
+    message(WARNING "Doxygen not found. Documentation will not be built.")
+    message(STATUS "To install Doxygen: brew install doxygen (macOS) or apt-get install doxygen (Ubuntu)")
+endif()
+
+# ===================================================================
 # Validation and Testing Tools (Task 8)
 # ===================================================================
 
@@ -371,7 +421,7 @@ install(TARGETS ucra ucra_impl ucra_impl_shared cjson
 # Install executables
 install(TARGETS resampler
         DESTINATION bin)
-  
+
 if(UCRA_BUILD_TOOLS)
     install(TARGETS f0_rmse_calc mcd_calc audio_compare golden_runner create_golden_wav validation_suite ucra_manifest_gen
             RUNTIME DESTINATION bin)
