@@ -1,0 +1,78 @@
+name: Build, Package and Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Optional tag name to use for release (when manually dispatched)'
+        required: false
+
+jobs:
+  build-and-package:
+    runs-on: windows-latest
+    env:
+      BUILD_DIR: build
+      DIST_DIR: dist
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -S . -B $env:BUILD_DIR -DCMAKE_BUILD_TYPE=Release -DUCRA_BUILD_RUST_BINDINGS=ON
+
+      - name: Build (Release)
+        shell: pwsh
+        run: cmake --build $env:BUILD_DIR -j
+
+      - name: Run CTest (Release)
+        shell: pwsh
+        run: ctest --test-dir $env:BUILD_DIR -C Release -j4 --output-on-failure
+
+      - name: Assemble dist and create zip
+        id: assemble
+        shell: pwsh
+        run: |
+          if (Test-Path $env:DIST_DIR) { Remove-Item -Recurse -Force $env:DIST_DIR }
+          New-Item -ItemType Directory -Path "$env:DIST_DIR\sdk\include" -Force | Out-Null
+          Copy-Item "include\ucra\ucra.h" "$env:DIST_DIR\sdk\include\ucra.h"
+          New-Item -ItemType Directory -Path "$env:DIST_DIR\engines" -Force | Out-Null
+          Copy-Item "$env:BUILD_DIR\Release\ucra_impl.lib" "$env:DIST_DIR\engines\" -ErrorAction SilentlyContinue
+          Copy-Item "$env:BUILD_DIR\Release\ucra_impl_shared.dll" "$env:DIST_DIR\engines\" -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path "$env:DIST_DIR\tools" -Force | Out-Null
+          Copy-Item "$env:BUILD_DIR\Release\resampler.exe" "$env:DIST_DIR\tools\" -ErrorAction SilentlyContinue
+          Copy-Item "$env:BUILD_DIR\Release\ucra_manifest_gen.exe" "$env:DIST_DIR\tools\" -ErrorAction SilentlyContinue
+          Copy-Item "docs" "$env:DIST_DIR\docs" -Recurse -Force
+          $zipName = "ucra-release-$($env:GITHUB_RUN_NUMBER).zip"
+          Compress-Archive -Path "$env:DIST_DIR\*" -DestinationPath $zipName -Force
+          Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append -InputObject "zip=$zipName"
+
+      - name: Upload artifact (job retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ucra-release-zip
+          path: ${{ steps.assemble.outputs.zip }}
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name || github.event.inputs.tag }}
+          release_name: Release ${{ github.ref_name || github.event.inputs.tag }}
+          body: "Automated release created by CI: build + package artifacts"
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.assemble.outputs.zip }}
+          asset_name: ${{ steps.assemble.outputs.zip }}
+          asset_content_type: application/zip
