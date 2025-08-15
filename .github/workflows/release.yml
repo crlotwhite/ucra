@@ -76,11 +76,19 @@ jobs:
       - name: Configure CMake (fallback build)
         if: steps.detect.outputs.found != 'true'
         run: |
-          cmake -S . -B "${{ env.BUILD_DIR }}" -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=ON -DBUILD_SHARED_LIBS=ON
+          # Do NOT enable UCRA_BUILD_TOOLS here; some tools use POSIX-only headers and fail on Windows.
+          # We'll build just the needed tool(s) (e.g. resampler) explicitly in a later step if missing.
+          cmake -S . -B "${{ env.BUILD_DIR }}" -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=OFF -DBUILD_SHARED_LIBS=ON
 
-      - name: Build (fallback)
-        if: steps.detect.outputs.found != 'true'
-        run: cmake --build "${{ env.BUILD_DIR }}" --config ${{ env.BUILD_TYPE }} --parallel
+      - name: Build libs (fallback, Linux/macOS)
+        if: steps.detect.outputs.found != 'true' && runner.os != 'Windows'
+        run: |
+          cmake --build "${{ env.BUILD_DIR }}" --config ${{ env.BUILD_TYPE }} --parallel --target ucra_impl cjson
+
+      - name: Build libs (fallback, Windows)
+        if: steps.detect.outputs.found != 'true' && runner.os == 'Windows'
+        run: |
+          cmake --build "${{ env.BUILD_DIR }}" --config ${{ env.BUILD_TYPE }} --parallel --target ucra_impl cjson
 
       - name: Run CTest (fallback)
         if: steps.detect.outputs.found != 'true'
