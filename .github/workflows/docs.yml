@@ -40,7 +40,7 @@ jobs:
   build-docs:
     name: Build and Deploy Documentation
     runs-on: ubuntu-latest
-    
+
     # Add environment for GitHub Pages deployment
     environment:
       name: github-pages
