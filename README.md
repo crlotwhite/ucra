@@ -240,21 +240,23 @@ ucra/
 └── docs/                 # 문서
 ```
 
-## 📚 문서
+## 문서
 
-- [빠른 시작 가이드](docs/quick-start.md)
-- [API 레퍼런스](docs/api-reference.md)
-- [매니페스트 파일 형식](schemas/resampler.schema.json)
+- [API 레퍼런스](docs/api_ucra.md)
+- [매니페스트 스펙](docs/spec_manifest.md)
+- [UTAU 연동 가이드](docs/guides/utau.md)
+- [OpenUtau 연동 가이드](docs/guides/openutau.md)
+- [JSON 스키마](schemas/resampler.schema.json)
 - [예제 모음](examples/)
 
-## 🎯 사용 사례
+## 사용 사례
 
 - **음성 편집기**: UTAU, OpenUtau와 같은 편집기와 엔진 연동
 - **플러그인 개발**: VST/AU 플러그인에서 음성 합성 엔진 활용
 - **스탠드얼론 애플리케이션**: 음성 합성 기능이 필요한 애플리케이션
 - **연구 및 실험**: 새로운 음성 합성 알고리즘 프로토타이핑
 
-## 🔧 빌드 결과물
+## 빌드 결과물
 
 빌드 후 다음 파일들이 생성됩니다:
 
@@ -262,7 +264,7 @@ ucra/
 - **resampler**: UTAU 호환 CLI 도구
 - **test_\***: 각종 테스트 실행파일
 
-## 🤝 기여하기
+## 기여하기
 
 1. 이 저장소를 포크하세요
 2. 기능 브랜치를 만드세요 (`git checkout -b feature/AmazingFeature`)
@@ -270,11 +272,11 @@ ucra/
 4. 브랜치에 푸시하세요 (`git push origin feature/AmazingFeature`)
 5. Pull Request를 열어주세요
 
-## 📄 라이선스
+## 라이선스
 
-이 프로젝트는 [라이선스명] 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참조하세요.
+이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참조하세요.
 
-## 🙏 감사의 말
+## 감사의 말
 
 - cJSON 라이브러리 개발팀
 - UTAU 및 OpenUtau 커뮤니티

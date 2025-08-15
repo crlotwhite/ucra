@@ -144,15 +144,21 @@ option(UCRA_BUILD_RUST_BINDINGS "Build Rust language bindings" OFF)
 if(UCRA_BUILD_TOOLS)
     # F0 RMSE Calculation Utility
     add_executable(f0_rmse_calc tools/f0_rmse_calc.c)
-    target_link_libraries(f0_rmse_calc m)
+    if(UNIX)
+        target_link_libraries(f0_rmse_calc m)
+    endif()
 
     # MCD(13) Calculation Utility
     add_executable(mcd_calc tools/mcd_calc.c)
-    target_link_libraries(mcd_calc m)
+    if(UNIX)
+        target_link_libraries(mcd_calc m)
+    endif()
 
     # Audio Comparison Module
     add_executable(audio_compare tools/audio_compare.c)
-    target_link_libraries(audio_compare m)
+    if(UNIX)
+        target_link_libraries(audio_compare m)
+    endif()
 
     # Golden Runner Test Harness
     add_executable(golden_runner tools/golden_runner.c)
@@ -355,7 +361,7 @@ install(FILES third-party/cJSON.h
         DESTINATION include/third-party)
 
 # Install libraries
-install(TARGETS ucra ucra_impl cjson
+install(TARGETS ucra ucra_impl ucra_impl_shared cjson
         EXPORT UCRATargets
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
@@ -365,6 +371,11 @@ install(TARGETS ucra ucra_impl cjson
 # Install executables
 install(TARGETS resampler
         DESTINATION bin)
+  
+if(UCRA_BUILD_TOOLS)
+    install(TARGETS f0_rmse_calc mcd_calc audio_compare golden_runner create_golden_wav validation_suite ucra_manifest_gen
+            RUNTIME DESTINATION bin)
+endif()
 
 # Create and install CMake config files
 include(CMakePackageConfigHelpers)
@@ -395,6 +406,24 @@ install(EXPORT UCRATargets
         FILE UCRATargets.cmake
         NAMESPACE UCRA::
         DESTINATION lib/cmake/UCRA)
+
+# ===================================================================
+# Distribution Packaging Helper
+# ===================================================================
+add_custom_target(package_dist
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/dist
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/dist
+    # Install built targets and headers into dist/
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR} ${CMAKE_COMMAND} --install . --prefix ${CMAKE_BINARY_DIR}/dist
+    # Bundle documentation and license
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/docs ${CMAKE_BINARY_DIR}/dist/docs
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_BINARY_DIR}/dist/LICENSE
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/README.md ${CMAKE_BINARY_DIR}/dist/README.md
+    # Bundle schemas
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/dist/schemas
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/schemas/resampler.schema.json ${CMAKE_BINARY_DIR}/dist/schemas/resampler.schema.json
+    COMMENT "Packaging installed artifacts and documentation into dist/"
+)
 
 # ===================================================================
 # Language Bindings (Task 6)

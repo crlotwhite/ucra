@@ -626,7 +626,7 @@
           8,
           9
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -634,7 +634,7 @@
             "description": "Write the technical specification documents for the UCRA C API (`ucra.h`) and the `resampler.json` manifest format, which form the foundation for all other documentation.",
             "dependencies": [],
             "details": "Create `docs/api_ucra.md` detailing all functions, data structures, and error codes defined in Task 1. Create `docs/spec_manifest.md` to define the complete JSON schema for engine manifests, explaining all keys, value types, and providing usage examples.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Review documents against the source code (`ucra.h`) and reference implementation (Task 5) for technical accuracy. Validate any JSON examples against a schema validator."
           },
           {
@@ -645,7 +645,7 @@
               "10.1"
             ],
             "details": "Write `docs/guides/utau.md` to explain how to configure a UTAU-like editor to use the `resampler.exe` from Task 3 as a drop-in replacement. The guide should cover basic setup, flag usage, and troubleshooting.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Perform a clean installation of UTAU, configure it with the CLI bridge and reference engine as per the guide, and render a sample UST project to verify functionality."
           },
           {
@@ -656,7 +656,7 @@
               "10.1"
             ],
             "details": "Write `docs/guides/openutau.md` explaining how to use the manifest generator tool from Task 7. The guide must detail how to add the generated manifest to OpenUtau and select the engine for a voicebank. Include screenshots for clarity.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Use the manifest generator (Task 7) for the reference engine, follow the guide to install it in OpenUtau, and test both preview and final rendering to ensure it works as described."
           },
           {
@@ -669,7 +669,7 @@
               "10.3"
             ],
             "details": "Create the final release directory structure. Place `ucra.h` in `sdk/include/`. Place compiled engine libraries in `engines/`. Place the `resampler.exe` (Task 3) and manifest generator (Task 7) in `tools/`. Bundle all documentation within the `docs/` directory. Create a release archive (e.g., .zip) of the complete package.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "On a clean system (or VM), extract the release archive and verify the file structure is correct. Confirm that the tools are executable and that a sample project can be compiled against the provided SDK."
           },
           {
@@ -680,7 +680,7 @@
               "10.4"
             ],
             "details": "Proofread all documentation for clarity, grammar, and technical accuracy. Add a root `LICENSE` file for the project. Ensure all third-party licenses (e.g., for the WORLD engine from Task 5) are included and properly attributed. Update the main `README.md` with installation instructions and links to the full documentation.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Have a team member conduct a peer review of the entire package. Follow the `README.md` instructions as a new user to test the setup process. Verify that all license files are present and correctly referenced."
           }
         ]
@@ -688,7 +688,7 @@
     ],
     "metadata": {
       "created": "2025-08-10T12:56:02.632Z",
-      "updated": "2025-08-14T16:05:14.916Z",
+      "updated": "2025-08-15T08:59:30.572Z",
       "description": "Tasks for master context"
     }
   }
