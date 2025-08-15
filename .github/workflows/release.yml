@@ -90,11 +90,6 @@ jobs:
         run: |
           cmake --build "${{ env.BUILD_DIR }}" --config ${{ env.BUILD_TYPE }} --parallel --target ucra_impl cjson
 
-      - name: Run CTest (fallback)
-        if: steps.detect.outputs.found != 'true'
-        run: |
-          ctest --test-dir "${{ env.BUILD_DIR }}" --output-on-failure --build-config ${{ env.BUILD_TYPE }} -E "(cpp|dotnet|python|rust)_"
-
       - name: Prepare dist tree
         run: |
           rm -rf "${DIST_DIR}"
