@@ -233,7 +233,9 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '6.0.x'
+          # Install .NET 9 SDK so we can build/run the net9.0 sample app
+          # Newer SDKs can also build older target frameworks (e.g., net6.0 tests)
+          dotnet-version: '9.0.x'
 
       - name: Configure UCRA with .NET bindings
         env:
