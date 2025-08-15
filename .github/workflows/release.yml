@@ -76,16 +76,16 @@ jobs:
       - name: Configure CMake (fallback build)
         if: steps.detect.outputs.found != 'true'
         run: |
-          cmake -S . -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=ON -DBUILD_SHARED_LIBS=ON
+          cmake -S . -B "${{ env.BUILD_DIR }}" -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=ON -DBUILD_SHARED_LIBS=ON
 
       - name: Build (fallback)
         if: steps.detect.outputs.found != 'true'
-        run: cmake --build ${BUILD_DIR} --config ${BUILD_TYPE} --parallel
+        run: cmake --build "${{ env.BUILD_DIR }}" --config ${{ env.BUILD_TYPE }} --parallel
 
       - name: Run CTest (fallback)
         if: steps.detect.outputs.found != 'true'
         run: |
-          ctest --test-dir ${BUILD_DIR} --output-on-failure --build-config ${BUILD_TYPE} -E "(cpp|dotnet|python|rust)_"
+          ctest --test-dir "${{ env.BUILD_DIR }}" --output-on-failure --build-config ${{ env.BUILD_TYPE }} -E "(cpp|dotnet|python|rust)_"
 
       - name: Prepare dist tree
         run: |
@@ -128,8 +128,8 @@ jobs:
         run: |
           if [ ! -f "${DIST_DIR}/tools/resampler" ]; then
             echo "resampler not found in artifacts; building tools..."
-            cmake -S . -B build-tools -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=ON
-            cmake --build build-tools --config ${BUILD_TYPE} --parallel --target resampler || cmake --build build-tools --config ${BUILD_TYPE} --parallel
+            cmake -S . -B build-tools -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=ON
+            cmake --build build-tools --config ${{ env.BUILD_TYPE }} --parallel --target resampler || cmake --build build-tools --config ${{ env.BUILD_TYPE }} --parallel
             cp -n build-tools/resampler "${DIST_DIR}/tools/" 2>/dev/null || true
           fi
         shell: bash
@@ -175,9 +175,9 @@ jobs:
           $toolPath = Join-Path $env:DIST_DIR 'tools\resampler.exe'
           if (-not (Test-Path $toolPath)) {
             Write-Host "resampler.exe not found in artifacts; building tools..."
-            cmake -S . -B $env:BUILD_DIR -DCMAKE_BUILD_TYPE=$env:BUILD_TYPE -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=ON
-            cmake --build $env:BUILD_DIR --config $env:BUILD_TYPE --parallel --target resampler
-            Copy-Item "$env:BUILD_DIR\$env:BUILD_TYPE\resampler.exe" "$env:DIST_DIR\tools\" -ErrorAction SilentlyContinue
+            cmake -S . -B "${{ env.BUILD_DIR }}" -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUCRA_BUILD_EXAMPLES=OFF -DUCRA_BUILD_TOOLS=ON
+            cmake --build "${{ env.BUILD_DIR }}" --config ${{ env.BUILD_TYPE }} --parallel --target resampler
+            Copy-Item "${{ env.BUILD_DIR }}\${{ env.BUILD_TYPE }}\resampler.exe" "$env:DIST_DIR\tools\" -ErrorAction SilentlyContinue
           }
 
       - name: Archive package (Linux/macOS)
