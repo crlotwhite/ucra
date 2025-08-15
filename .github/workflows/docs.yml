@@ -27,7 +27,10 @@ on:
 
 # Set permissions for GitHub Pages deployment
 permissions:
-  contents: read
+  # GITHUB_TOKEN needs write access to repository contents so the action
+  # can create/update the gh-pages branch. Without this, push will fail
+  # with "Permission ... denied to github-actions[bot]" (HTTP 403).
+  contents: write
   pages: write
   id-token: write
 
