@@ -27,10 +27,7 @@ on:
 
 # Set permissions for GitHub Pages deployment
 permissions:
-  # GITHUB_TOKEN needs write access to repository contents so the action
-  # can create/update the gh-pages branch. Without this, push will fail
-  # with "Permission ... denied to github-actions[bot]" (HTTP 403).
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -43,12 +40,20 @@ jobs:
   build-docs:
     name: Build and Deploy Documentation
     runs-on: ubuntu-latest
+    
+    # Add environment for GitHub Pages deployment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch all history for proper version info
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
       - name: Install dependencies
         run: |
@@ -68,17 +73,18 @@ jobs:
           ls -la build-docs/docs/doxygen/
           find build-docs/docs/doxygen/ -name "*.html" | head -10
 
-      # Deploy to GitHub Pages only on main/master branch pushes
+      # Upload artifact for GitHub Pages (only on main/master branch pushes)
+      - name: Upload Pages artifact
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build-docs/docs/doxygen/html
+
+      # Deploy to GitHub Pages (only on main/master branch pushes)
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build-docs/docs/doxygen/html
-          destination_dir: docs  # Optional: deploy to /docs subdirectory
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: 'Deploy documentation for ${{ github.sha }}'
+        id: deployment
+        uses: actions/deploy-pages@v4
 
       # For PR builds, just upload as artifact for review
       - name: Upload documentation artifact (for PRs)
